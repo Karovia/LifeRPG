@@ -2,8 +2,10 @@ import { useGameStore } from '@/store/gameStore'
 import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MiniMap } from './MiniMap'
+import { FrameAnim } from './FrameAnim'
 import { PixelImage } from './PixelImage'
 import {
+  CAT_WALK_FRAMES,
   CHIMNEYS,
   FARM_CELLS,
   MAP_COLS,
@@ -14,6 +16,7 @@ import {
   TILE,
   TILE_STYLE,
   TOWN_MAP,
+  WATER_FRAMES,
   WORLD_H,
   WORLD_W,
   isBlocked,
@@ -56,24 +59,24 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n))
 }
 
-/** 昼夜循环色调罩层（随真实时间，暖色系、无蓝紫） */
+/** 昼夜循环色调罩层（随真实时间，暖色系、无蓝紫；新美术细节更丰富，罩层调柔和不压住画面） */
 function dayNightBackground(date: Date): string {
   const t = date.getHours() + date.getMinutes() / 60
   if (t >= 5 && t < 7) {
     // 清晨：薄暖金
-    return 'linear-gradient(rgba(228,170,96,0.14), rgba(200,122,62,0.10))'
+    return 'linear-gradient(rgba(228,170,96,0.12), rgba(200,122,62,0.09))'
   }
   if (t >= 7 && t < 16.5) return 'rgba(0,0,0,0)'
   if (t >= 16.5 && t < 19) {
     // 黄昏：暖橘渐变
-    return 'linear-gradient(rgba(226,150,70,0.16), rgba(140,70,36,0.24))'
+    return 'linear-gradient(rgba(226,150,70,0.14), rgba(140,70,36,0.20))'
   }
   if (t >= 19 && t < 21) {
     // 入夜：暖褐加深
-    return 'linear-gradient(rgba(92,52,32,0.26), rgba(42,28,22,0.34))'
+    return 'linear-gradient(rgba(92,52,32,0.22), rgba(42,28,22,0.30))'
   }
   // 夜晚：暖暗罩层
-  return 'rgba(34,24,20,0.38)'
+  return 'rgba(34,24,20,0.33)'
 }
 
 interface TownMapProps {
@@ -99,6 +102,9 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
   const [playerPos, setPlayerPos] = useState<Pos>(PLAYER_START)
   const [target, setTarget] = useState<Pos | null>(null)
   const [petPos, setPetPos] = useState<Pos>(PET_START)
+  const [petFacing, setPetFacing] = useState<'left' | 'right'>('right')
+  /** 猫咪位移后短暂播放行走帧，随后停回第 0 帧 */
+  const [petMoving, setPetMoving] = useState(false)
   const [facing, setFacing] = useState<'left' | 'right'>('right')
   const [moving, setMoving] = useState(false)
   const [hearts, setHearts] = useState<number[]>([])
@@ -110,6 +116,9 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
   const worldRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(playerPos)
   posRef.current = playerPos
+  const petPosRef = useRef(petPos)
+  petPosRef.current = petPos
+  const petSeenRef = useRef(false)
   const heartSeq = useRef(0)
   const walkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -206,23 +215,36 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
     return () => clearInterval(id)
   }, [target, movementEnabled, pulseWalking])
 
-  // 宠物随机漫步
+  // 宠物随机漫步（顺带记录朝向，驱动行走帧翻转）
   useEffect(() => {
     if (!pet.adopted) return
     const id = setInterval(() => {
-      setPetPos((cur) => {
-        const options = [
-          { x: cur.x + 1, y: cur.y },
-          { x: cur.x - 1, y: cur.y },
-          { x: cur.x, y: cur.y + 1 },
-          { x: cur.x, y: cur.y - 1 },
-        ].filter((p) => !isBlocked(p))
-        if (options.length === 0) return cur
-        return options[Math.floor(Math.random() * options.length)]
-      })
+      const cur = petPosRef.current
+      const options = [
+        { x: cur.x + 1, y: cur.y },
+        { x: cur.x - 1, y: cur.y },
+        { x: cur.x, y: cur.y + 1 },
+        { x: cur.x, y: cur.y - 1 },
+      ].filter((p) => !isBlocked(p))
+      if (options.length === 0) return
+      const next = options[Math.floor(Math.random() * options.length)]
+      if (next.x < cur.x) setPetFacing('left')
+      else if (next.x > cur.x) setPetFacing('right')
+      setPetPos(next)
     }, PET_WANDER_MS)
     return () => clearInterval(id)
   }, [pet.adopted])
+
+  // 猫咪位移 → 播放一小段行走动画（首次挂载不算）
+  useEffect(() => {
+    if (!petSeenRef.current) {
+      petSeenRef.current = true
+      return
+    }
+    setPetMoving(true)
+    const id = setTimeout(() => setPetMoving(false), 900)
+    return () => clearTimeout(id)
+  }, [petPos])
 
   // 宠物饥饿随时间下降
   useEffect(() => {
@@ -306,9 +328,11 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
         ? (WORLD_H - viewport.h) / 2
         : clamp(playerPos.y * TILE + TILE / 2 - viewport.h / 2, 0, WORLD_H - viewport.h)
 
+  /** 实体定位 + 简单 y 排序：y 越大 z 越高（后画盖在上面），云朵/炊烟保持最上层 */
   const entityStyle = (pos: Pos): CSSProperties => ({
     width: TILE,
     height: TILE,
+    zIndex: 10 + pos.y,
     transform: `translate(${pos.x * TILE}px, ${pos.y * TILE}px)`,
     transition: `transform ${CLICK_STEP_MS}ms linear`,
   })
@@ -385,14 +409,28 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
                 className="relative"
                 style={{ width: TILE, height: TILE, backgroundColor: tile.color }}
               >
-                {tile.img && (
-                  <PixelImage
-                    src={tile.img}
-                    alt=""
+                {TOWN_MAP[y][x] === 'w' ? (
+                  /* 水面：帧动画（降级链：water 帧 → tiles/water.png → 底色块） */
+                  <FrameAnim
+                    frames={WATER_FRAMES}
+                    fps={4}
+                    fallbackImg="/assets/tiles/water.png"
+                    alt="水面"
                     className="pointer-events-none absolute inset-0 h-full w-full"
                     fallbackClassName="pointer-events-none absolute inset-0"
+                    fallbackStyle={{ backgroundColor: tile.color }}
                     fallbackText=""
                   />
+                ) : (
+                  tile.img && (
+                    <PixelImage
+                      src={tile.img}
+                      alt=""
+                      className="pointer-events-none absolute inset-0 h-full w-full"
+                      fallbackClassName="pointer-events-none absolute inset-0"
+                      fallbackText=""
+                    />
+                  )
                 )}
 
                 {/* 点击目标指示 */}
@@ -424,11 +462,11 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
           })}
         </div>
 
-        {/* 炊烟（房屋烟囱上升烟圈） */}
+        {/* 炊烟（房屋烟囱上升烟圈；z 高于所有 y 排序实体） */}
         {CHIMNEYS.map((c, i) => (
           <div
             key={i}
-            className="pointer-events-none absolute z-20"
+            className="pointer-events-none absolute z-30"
             style={{ left: (c.x + 0.5) * TILE - 3, top: c.y * TILE - 2 }}
           >
             {[0, 1, 2].map((k) => (
@@ -441,15 +479,18 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
           </div>
         ))}
 
-        {/* NPC（站在有意义的地点：房门口 / 市集 / 画室旁） */}
+        {/* NPC（站在有意义的地点：房门口 / 市集 / 画室旁；待机呼吸帧动画） */}
         {NPC_META.map((npc) => (
-          <div key={npc.id} className="pointer-events-none absolute left-0 top-0 z-20" style={entityStyle(npc.pos)}>
+          <div key={npc.id} className="pointer-events-none absolute left-0 top-0" style={entityStyle(npc.pos)}>
             <div className="flex h-full w-full items-center justify-center">
-              <PixelImage
-                src={npc.img}
+              <FrameAnim
+                frames={npc.anim}
+                fps={4}
+                fallbackImg={npc.img}
                 alt="NPC"
-                className="h-[42px] w-[42px] object-contain"
-                fallbackClassName="h-[42px] w-[42px]"
+                className="h-[48px] w-[48px] object-contain"
+                fallbackClassName="h-[48px] w-[48px]"
+                fallbackStyle={{ backgroundColor: npc.color }}
                 fallbackText="人"
               />
             </div>
@@ -459,22 +500,31 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
           </div>
         ))}
 
-        {/* 宠物橘猫（点击喂食） */}
+        {/* 宠物橘猫（点击喂食；走动播 cat-walk 帧，站立停第 0 帧，朝向翻转） */}
         {pet.adopted && (
-          <div className="pointer-events-none absolute left-0 top-0 z-20" style={entityStyle(petPos)}>
-            <div className="flex h-full w-full items-center justify-center">
-              <PixelImage
-                src="/assets/decor/cat.png"
+          <div className="pointer-events-none absolute left-0 top-0" style={entityStyle(petPos)}>
+            <div
+              className="flex h-full w-full items-center justify-center"
+              style={{
+                transform: petFacing === 'left' ? 'scaleX(-1)' : 'none',
+                transition: 'transform 120ms steps(2, end)',
+              }}
+            >
+              <FrameAnim
+                frames={CAT_WALK_FRAMES}
+                fps={6}
+                active={petMoving}
+                fallbackImg="/assets/decor/cat.png"
                 alt="橘猫"
-                className="h-[38px] w-[38px] object-contain"
-                fallbackClassName="h-[38px] w-[38px] bg-gold"
+                className="h-[44px] w-[44px] object-contain"
+                fallbackClassName="h-[44px] w-[44px] bg-gold"
                 fallbackText="🐈"
               />
             </div>
             {hearts.map((h) => (
               <span
                 key={h}
-                className="town-heart absolute -top-1 left-1/2 z-30 -translate-x-1/2 text-sm"
+                className="town-heart absolute -top-1 left-1/2 -translate-x-1/2 text-sm"
               >
                 ❤️
               </span>
@@ -483,7 +533,7 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
         )}
 
         {/* 玩家（步行颠簸 + 朝向翻转） */}
-        <div className="pointer-events-none absolute left-0 top-0 z-30" style={entityStyle(playerPos)}>
+        <div className="pointer-events-none absolute left-0 top-0" style={entityStyle(playerPos)}>
           <div
             className="flex h-full w-full items-center justify-center"
             style={{
@@ -495,8 +545,8 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
               <PixelImage
                 src={player.avatarUrl || '/assets/avatar/placeholder.png'}
                 alt={player.name}
-                className="h-[44px] w-[44px] object-contain"
-                fallbackClassName="h-[44px] w-[44px] bg-berry"
+                className="h-[50px] w-[50px] object-contain"
+                fallbackClassName="h-[50px] w-[50px] bg-berry"
                 fallbackText="我"
               />
             </div>

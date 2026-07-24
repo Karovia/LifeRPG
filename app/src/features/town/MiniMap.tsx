@@ -27,10 +27,11 @@ export function MiniMap({ playerPos, petPos, petAdopted }: MiniMapProps) {
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
 
-    // 世界轮廓（按地块底色缩略）
+    // 世界轮廓（按地块底色缩略；栅栏/路灯等装饰地块用 mini 专用色区分）
     for (let y = 0; y < MAP_ROWS; y++) {
       for (let x = 0; x < MAP_COLS; x++) {
-        ctx.fillStyle = TILE_STYLE[TOWN_MAP[y][x]].color
+        const style = TILE_STYLE[TOWN_MAP[y][x]]
+        ctx.fillStyle = style.mini ?? style.color
         ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE)
       }
     }

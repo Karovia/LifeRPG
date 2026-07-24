@@ -20,20 +20,22 @@ export interface Pos {
 export const MAP_COLS = 24
 export const MAP_ROWS = 16
 
-/** 单格像素尺寸（世界层按绝对像素排布，供镜头平移） */
-export const TILE = 48
+/** 单格像素尺寸（世界层按绝对像素排布，供镜头平移；56 贴近 64px 美术原图，细节更清晰） */
+export const TILE = 56
 export const WORLD_W = MAP_COLS * TILE
 export const WORLD_H = MAP_ROWS * TILE
 
-/** 地块编码：g 草地 p 石板路 f 花丛 h 房屋 t 树 F 农田 */
-export type TileCode = 'g' | 'p' | 'f' | 'h' | 't' | 'F'
+/** 地块编码：g 草地 p 石板路 f 花丛 h 房屋 t 树 F 农田 w 水面 n 栅栏 l 路灯 */
+export type TileCode = 'g' | 'p' | 'f' | 'h' | 't' | 'F' | 'w' | 'n' | 'l'
 
 /**
  * 小镇布局（24x16，程序化生成避免手写错位）：
  * - 房屋区：长者家（左上）、两间民居（北侧）、画室（右上）、玩家小屋（左下）、农舍（中下）
  * - 石板路网：横向主路贯穿 + 多条纵向小路 + 市集广场 + 农田便道
  * - 市集：主路北侧广场，两个货摊，商人坐镇
- * - 农田区：右下 2x2 田块，四周便道环绕
+ * - 农田区：右下 2x2 田块（field 地块），四周便道环绕，西侧缺口以栅栏围合
+ * - 水塘：中南不规则水面（water 帧动画），塘边花丛点缀
+ * - 路灯：沿主路南北两侧错落点缀（lamp）
  * - 树木沿边缘与角落散布，花丛点缀路旁
  */
 function buildTownMap(): TileCode[][] {
@@ -76,13 +78,13 @@ function buildTownMap(): TileCode[][] {
   ;[2, 4, 6, 10, 13, 15].forEach((y) => set(0, y, 't')) // 西缘
   ;[1, 3, 5, 7, 9, 13, 15].forEach((y) => set(23, y, 't')) // 东缘
   ;[1, 5, 7, 9, 12, 16, 19, 22].forEach((x) => set(x, 15, 't')) // 南缘
-  // 零星树
+  // 零星树（避开中南水塘）
   set(11, 10, 't')
   set(6, 11, 't')
   set(16, 13, 't')
-  set(8, 13, 't')
+  set(7, 13, 't')
 
-  // ----- 花丛 -----
+  // ----- 花丛（塘边与路旁成组点缀，避免均匀撒点） -----
   ;[
     [1, 4],
     [5, 5],
@@ -93,35 +95,76 @@ function buildTownMap(): TileCode[][] {
     [9, 10],
     [15, 11],
     [6, 14],
-    [10, 14],
-    [22, 10],
     [12, 11],
+    [22, 10],
+    [11, 13], // 塘东
+    [8, 14], // 塘西
   ].forEach(([x, y]) => set(x, y, 'f'))
 
-  // ----- 农田（右下 2x2） -----
+  // ----- 水塘（中南不规则小湖，帧动画水面） -----
+  ;[
+    [9, 12],
+    [10, 12],
+    [11, 12],
+    [8, 13],
+    [9, 13],
+    [10, 13],
+    [9, 14],
+    [10, 14],
+  ].forEach(([x, y]) => set(x, y, 'w'))
+
+  // ----- 农田（右下 2x2）+ 西侧栅栏围合（其余三面便道环绕） -----
   rect(19, 12, 20, 13, 'F')
+  set(18, 12, 'n')
+  set(18, 13, 'n')
+
+  // ----- 路灯（沿主路两侧错落：北侧 4 盏 + 南侧 3 盏） -----
+  ;[
+    [1, 7],
+    [7, 7],
+    [15, 7],
+    [22, 7],
+    [5, 9],
+    [12, 9],
+    [19, 9],
+  ].forEach(([x, y]) => set(x, y, 'l'))
 
   return g
 }
 
 export const TOWN_MAP: TileCode[][] = buildTownMap()
 
-/** 地块贴图与纯色降级 */
-export const TILE_STYLE: Record<TileCode, { img: string | null; color: string }> = {
+/** 地块贴图与纯色降级；mini 为小地图专用色（缺省用 color） */
+export const TILE_STYLE: Record<TileCode, { img: string | null; color: string; mini?: string }> = {
   g: { img: '/assets/tiles/grass.png', color: '#97A872' },
   p: { img: '/assets/tiles/path.png', color: '#C9B48A' },
   f: { img: '/assets/tiles/flower.png', color: '#8FA06B' },
   h: { img: '/assets/tiles/house.png', color: '#8A6242' },
   t: { img: '/assets/tiles/tree.png', color: '#5F6C43' },
-  F: { img: null, color: '#6B4A2F' },
+  F: { img: '/assets/tiles/field.png', color: '#7A5638' },
+  // 水面由 TownMap 以帧动画渲染，此处仅提供降级底色 / 小地图色
+  w: { img: null, color: '#7FA393' },
+  // 栅栏 / 路灯为透明装饰图，底色与草地一致；小地图用木色 / 暖金区分
+  n: { img: '/assets/tiles/fence.png', color: '#97A872', mini: '#8F7A56' },
+  l: { img: '/assets/tiles/lamp.png', color: '#97A872', mini: '#C9A44A' },
 }
 
-/** 不可通行的地块（房屋/树/农田） */
-const BLOCKED_CODES: TileCode[] = ['h', 't', 'F']
+/** 不可通行的地块（房屋/树/农田/水面/栅栏/路灯） */
+const BLOCKED_CODES: TileCode[] = ['h', 't', 'F', 'w', 'n', 'l']
+
+/** 帧动画路径工具：/assets/anim/<name>/frame-0..3.png */
+export const animFrames = (name: string): string[] =>
+  [0, 1, 2, 3].map((i) => `/assets/anim/${name}/frame-${i}.png`)
+
+/** 橘猫行走帧序列 / 水塘水面帧序列 */
+export const CAT_WALK_FRAMES = animFrames('cat-walk')
+export const WATER_FRAMES = animFrames('water')
 
 export interface NpcMeta {
   id: string
   img: string
+  /** 待机呼吸帧序列（4 帧循环） */
+  anim: string[]
   pos: Pos
   /** 贴图缺失时的降级底色 */
   color: string
@@ -130,12 +173,30 @@ export interface NpcMeta {
 /**
  * NPC 站位（分布在有意义的地点）：
  * 长者 → 自家门口；商人 → 市集广场；画师 → 画室旁
- * （注意：store 里画师 id 为 painter，素材文件名为 artist.png）
+ * （注意：store 里画师 id 为 painter，素材文件名为 artist.png / artist-idle）
  */
 export const NPC_META: NpcMeta[] = [
-  { id: 'elder', img: '/assets/npc/elder.png', pos: { x: 4, y: 3 }, color: '#8A6242' },
-  { id: 'merchant', img: '/assets/npc/merchant.png', pos: { x: 12, y: 6 }, color: '#9E7C33' },
-  { id: 'painter', img: '/assets/npc/artist.png', pos: { x: 21, y: 3 }, color: '#A8504B' },
+  {
+    id: 'elder',
+    img: '/assets/npc/elder.png',
+    anim: animFrames('elder-idle'),
+    pos: { x: 4, y: 3 },
+    color: '#8A6242',
+  },
+  {
+    id: 'merchant',
+    img: '/assets/npc/merchant.png',
+    anim: animFrames('merchant-idle'),
+    pos: { x: 12, y: 6 },
+    color: '#9E7C33',
+  },
+  {
+    id: 'painter',
+    img: '/assets/npc/artist.png',
+    anim: animFrames('artist-idle'),
+    pos: { x: 21, y: 3 },
+    color: '#A8504B',
+  },
 ]
 
 export const NPC_POSITIONS: Pos[] = NPC_META.map((n) => n.pos)
