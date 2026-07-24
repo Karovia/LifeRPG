@@ -24,19 +24,48 @@ npm run dev
 
 开发环境通过 Vite proxy（`/pixellab/*` → `https://api.pixellab.ai/v1/*`）绕开 CORS。未配置 key 时应用仍可运行：头像与素材走内置降级链（占位图 + 像素兜底渲染），AI 文本能力为确定性本地 mock（接入点见 `app/src/lib/ai.ts`）。
 
+## Admin 管理台与 LLM 接入
+
+`/admin` 为登录保护的管理台（账号 `Karovia` / 密码 `173256`），**不进底部导航**，经顶栏 HUD 右侧 ⚙️ 进入。功能：
+
+- 维护 OpenAI 兼容 LLM 配置（baseURL / apiKey / modelID / enabled 开关），持久化在本地 store（v3 结构含 `llmConfig` / `adminAuthed`，自动迁移旧数据）
+- 「测试连接」：经 `POST /api/llm` 代理发一条 ping（maxTokens=8），展示上游真实响应或错误详情
+
+LLM 调用统一走 OpenAI 兼容协议（`POST {baseURL}/chat/completions`，Bearer apiKey），三个板块：
+
+| 板块 | 链路 | 说明 |
+| --- | --- | --- |
+| 魔法日记 `/diary` | 浏览器 → `POST /api/llm`（dev 中间件中转，绕 CORS，密钥不进打包产物）→ 上游 | 魔法日记本人格，90s 超时；回复带来源徽标（✨ AI 回应 / 📜 纸灵回应） |
+| 成就树拆解 `/quests` | 浏览器 → `POST /api/decompose` → **服务端直连上游**（不经 `/api/llm`） | body 带 `llm` 三字段时优先 `response_format=json_object`，上游 400 回退普通模式并从文本/```json 块提取 JSON；产出 3-5 阶段具体化成就树（产出物 + 量化验收标准 + 推荐资源），前端展示 source 徽标 |
+| Admin 测试连接 | 与日记同链路 | 验证配置可用性 |
+
+降级行为（全部静默、不阻断使用）：
+
+- 未配置 LLM，或请求失败 / 超时 / 返回结构不合格：日记回退本地规则 mock（📜 纸灵回应）；拆解回退规则引擎具体化模板
+- 拆解响应 `source` 标识来源：`llm+search` / `llm-only`（LLM 成功）、`duckduckgo+rules` / `rules-only`（回退规则引擎）
+- `/api/llm` 透传上游 HTTP 错误状态码与详情；超时 60s 返回 504、连接失败 502，前端据此走本地降级
+- `/api/decompose` 的联网检索（DuckDuckGo 免 key，10s 超时）失败不阻断，LLM 与规则引擎均可无资料继续
+
 ## 功能清单
 
 | 模块 | 路由 | 说明 |
 | --- | --- | --- |
 | 首页 | `/` | 成长数据总览、今日目标、阶段 Deadline 撕日历轮播（4s 自动撕页 / 点击撕页 / 悬停暂停）、ToDo 快速清单 |
-| 成就树 | `/quests` | 目标 → 多阶段成就树（节点带 phase/deadline），逐级解锁；`POST /api/decompose` 开发中间件提供 AI 拆解：DuckDuckGo 联网检索 + 规则引擎，断网自动降级 rules-only，预留 LLM 接入点（`app/vite-plugins/decompose-api.ts`） |
-| 小镇养成 | `/town` | 全屏沉浸式像素世界（参考 peteroravec.com）：24×16 跟随镜头大地图、小地图、NPC 对话好感度、委托任务、家园种植、宠物喂养、云/炊烟/昼夜罩层；该路由下隐藏全局 HUD 与底导航，由小镇自带 HUD 与「离开」按钮接管 |
+| 成就树 | `/quests` | 目标 → 多阶段成就树（节点带 phase/deadline），逐级解锁；`POST /api/decompose` 开发中间件提供 AI 拆解：联网检索 + LLM 具体化拆解（未配置/失败自动回退规则引擎模板），节点全部带产出物与量化验收标准，前端展示 source 徽标（`app/vite-plugins/decompose-api.ts`） |
+| 小镇养成 | `/town` | 全屏沉浸式像素世界（参考 peteroravec.com）：24×16 跟随镜头大地图、小地图、NPC 对话好感度、委托任务、家园种植、宠物喂养、云/炊烟/昼夜罩层；水面/NPC 待机/猫行走为 FrameAnim 4 帧动画，角色按 y 排序遮挡；该路由下隐藏全局 HUD 与底导航，由小镇自带 HUD 与「离开」按钮接管 |
 | 形象创建 | `/avatar` | 三步向导（起名 → 描述 → Pixellab 生成确认），支持重新生成；HUD 头像可点击直达 |
-| 魔法日记 | `/diary` | 汤姆·里德尔式日记本：文字吸入纸面、回复浮现，支持历史旧页 |
+| 魔法日记 | `/diary` | 汤姆·里德尔式日记本：文字吸入纸面、回复浮现，支持历史旧页；配置 LLM 后由魔法日记本人格回复（✨ AI 回应），失败静默回退本地纸灵（📜 纸灵回应） |
 | 简历生成 | `/resume` | 意向设置 → AI 生成 → 卷轴展示，支持复制/导出与信息差告示牌 |
+| 管理台 | `/admin` | 登录保护（Karovia/173256）：LLM 配置表单 + 测试连接；不进底部导航，HUD ⚙️ 进入 |
 
-底部导航为 5 项像素图标（首页/任务/小镇/日记/简历），「形象」入口移至顶栏头像。全局状态使用 zustand + persist 持久化到 localStorage（key：`zhijian-weilai-game`，v2 结构含 todos/town，自动迁移旧数据），新用户打开会自动进入形象创建引导。
+底部导航为 5 项像素图标（首页/任务/小镇/日记/简历），「形象」入口移至顶栏头像。全局状态使用 zustand + persist 持久化到 localStorage（key：`zhijian-weilai-game`，v3 结构含 todos/town/llmConfig/adminAuthed，自动迁移旧数据），新用户打开会自动进入形象创建引导。
 
 ## 素材
 
-`app/public/assets/` 下像素素材全部由 Pixellab 实际生成：第一轮 11 张（金币、宝箱、XP 星、羊皮纸、小镇背景、占位头像、5 件家园装饰品），第二轮新增 17 张（5 张导航图标、小镇地块、3 个 NPC、作物等）。清单见 `app/public/assets/manifest.json`（含每张图的 prompt、尺寸与来源）。重新生成脚本：`app/scripts/generate-assets.mjs`。
+`app/public/assets/` 下像素素材全部由 Pixellab 实际生成，清单见 `app/public/assets/manifest.json`（含每张图的 prompt、尺寸与来源）：
+
+- 第一轮 11 张：金币、宝箱、XP 星、羊皮纸、小镇背景、占位头像、5 件家园装饰品
+- 第二轮 17 张：5 张导航图标、小镇地块、3 个 NPC、作物等
+- 第四轮：小镇 tiles 全部重绘并新增水面/栅栏/路灯/农田地块（旧图归档 `assets/_legacy/`）；5 组 Pixellab 4 帧动画（`anim/cat-walk`、`anim/water`、`anim/elder-idle`、`anim/merchant-idle`、`anim/artist-idle`）；3 个 NPC 立绘重绘
+
+动画渲染：前端以 `animFrames('<name>')` 拼 `/assets/anim/<name>/frame-0..3.png` 路径（与 manifest 条目一致），由小镇的 `FrameAnim` 组件循环播放。重新生成脚本：`app/scripts/generate-assets.mjs`。

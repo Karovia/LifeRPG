@@ -54,3 +54,33 @@ init-webapp.sh 初始化 `app/` → git init → 设计基础（像素字体/调
 - 路由 /、/quests、/town、/diary、/resume、/avatar 全部 200；导航素材 /assets/nav/*.png 200；NPC id（painter→artist.png）映射有显式注释对齐
 - `/api/decompose` 冒烟：HTTP 200，返回 5 阶段 13 节点（带 phase/deadline/anchorDate）；本机无外网时按设计降级 rules-only（非报错）
 - 遗留：DuckDuckGo 联网检索需在有外网环境再验证一次（本环境 HTTP 000，仅验证了降级路径）
+
+---
+
+# 第三轮迭代（2026-07-24 晚）
+
+需求：首页 Deadline 区改撕日历轮播动画｜小镇参考 peteroravec 重设计为全屏沉浸式像素世界。
+
+- 完成：7d1f890 feat(home) 撕日历轮播 ∥ 865672b feat(town) 全屏沉浸式小镇；b6aee20 集成验收（build 通过 + 冒烟），本文件当时未补录，特此补记
+
+---
+
+# 第四轮迭代（2026-07-24 深夜）
+
+需求：Admin 页面管理 LLM 配置（modelID/baseURL/apikey，登录 Karovia/173256）｜日记/规划拆解接入 LLM｜小镇美术资产升级+Pixellab 动画｜成就树拆解逻辑具体化。
+
+- Stage 1（并行）：E1 契约+Admin+`/api/llm` 代理（store/App.tsx/vite.config.ts/vite-plugins/llm-proxy.ts/features/admin）∥ E2 美术资产重做+Pixellab animate-with-text 动画帧（scripts/public/assets）
+- Stage 2（并行）：F1 日记接 LLM（features/diary）∥ F2 成就树拆解 LLM 化+具体化（features/quests + vite-plugins/decompose-api.ts）∥ F3 小镇应用新美术与动画（features/town）
+- Stage 3：集成验收（build + 冒烟 + stub LLM 验证代理链路）✅ 已完成（2026-07-24）
+- LLM 调用约定：OpenAI 兼容 POST {baseURL}/chat/completions（Bearer apiKey），浏览器侧经 `/api/llm` 中转避免 CORS；全部功能保留无配置时的本地降级
+
+## 第四轮验收结果（✅ 通过）
+
+- 5 个 commit 全部在案（74fe19a admin / 6c531b2 assets / e44804f diary / 970a088 quests / 417ccd2 town），`npm run build` 一次通过（tsc + vite，82 模块）
+- LLM 链路端到端实测（本地 stub OpenAI @3999）：
+  - `POST /api/llm`：HTTP 200 返回 stub 回复；stub 侧确认收到 model/max_tokens(messages 1 条，Bearer 转发正确)
+  - `POST /api/decompose` 带 llm：HTTP 200，`source: llm-only`，stub 成就树（3 阶段 6 节点）被接受，节点带 deadline/奖励/首个 available；stub 侧确认 json_object 模式、system+user 双消息
+  - `POST /api/decompose` 不带 llm：`source: rules-only` 正常回退（本机无外网，DuckDuckGo 检索 0 条属预期降级）
+- 冒烟：/、/admin、/town 200；`/assets/anim/cat-walk/frame-0.png`、`anim/water/frame-3.png`、`tiles/fence|lamp|field.png`、`manifest.json` 全部 200
+- 接缝：/admin 不进底部导航（HUD ⚙️ 进入）；/town 沉浸式布局（隐藏全局 HUD/底导航）未被破坏；manifest 5 组 anim 条目与前端 `animFrames()` 引用一致
+- 遗留：① NPC 对话仍为本地模板，未接 LLM（本轮范围外）；② DuckDuckGo 联网检索需在有外网环境再验证（本环境验证的是 llm-only / rules-only 路径）
