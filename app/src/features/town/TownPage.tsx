@@ -43,7 +43,7 @@ export default function TownPage() {
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
   return (
-    <div className="fixed inset-0 z-40 overflow-hidden bg-[#97A872]">
+    <div className="relative flex-1 overflow-hidden bg-[#97A872]">
       {/* 全屏游戏场景（镜头跟随玩家，含小地图 / 云 / 炊烟 / 昼夜罩层） */}
       <TownMap movementEnabled={!activeNpcId} onNpcClick={setActiveNpcId} />
 

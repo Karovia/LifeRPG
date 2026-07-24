@@ -1,4 +1,4 @@
-import { Link, NavLink, Route, Routes } from 'react-router'
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
 import { useState } from 'react'
 import { PixelProgressBar } from '@/components/pixel'
 import { useGameStore } from '@/store/gameStore'
@@ -119,10 +119,24 @@ function BottomNav() {
 }
 
 export default function App() {
+  const { pathname } = useLocation()
+  // /town 为全屏沉浸式世界：不占窄栏、不显示全局 HUD/底导航（小镇自带 HUD 与「离开」按钮）
+  const immersive = pathname.startsWith('/town')
+
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-parchment">
-      <Hud />
-      <main className="flex-1 overflow-y-auto p-2">
+    <div
+      className={
+        immersive
+          ? 'flex min-h-dvh flex-col bg-[#97A872]'
+          : 'mx-auto flex min-h-dvh max-w-md flex-col bg-parchment'
+      }
+    >
+      {!immersive && <Hud />}
+      <main
+        className={
+          immersive ? 'flex flex-1 flex-col overflow-hidden' : 'flex-1 overflow-y-auto p-2'
+        }
+      >
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/avatar" element={<AvatarPage />} />
@@ -132,7 +146,7 @@ export default function App() {
           <Route path="/resume" element={<ResumePage />} />
         </Routes>
       </main>
-      <BottomNav />
+      {!immersive && <BottomNav />}
     </div>
   )
 }
