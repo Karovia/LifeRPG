@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-07-24T12:36:09.698Z",
+  "generator": "app/scripts/generate-assets.mjs",
+  "assets": {
+    "decor/trophy": {
+      "path": "/assets/decor/trophy.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a golden trophy cup on a wooden base, 8-bit retro pixel art home decoration, warm palette"
+    },
+    "decor/cat": {
+      "path": "/assets/decor/cat.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a cute sitting ginger cat, 8-bit retro pixel art pet, warm palette"
+    },
+    "ui/coin": {
+      "path": "/assets/ui/coin.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a shiny round gold coin with a star emblem, 8-bit retro pixel art game icon, warm low-saturation palette"
+    },
+    "ui/chest": {
+      "path": "/assets/ui/chest.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a closed wooden treasure chest with gold trim and lock, 8-bit retro pixel art game icon, warm brown palette"
+    },
+    "ui/xp-star": {
+      "path": "/assets/ui/xp-star.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a glowing golden five-pointed experience star, 8-bit retro pixel art game icon, warm palette"
+    },
+    "bg/parchment": {
+      "path": "/assets/bg/parchment.png",
+      "source": "pixellab",
+      "size": [
+        256,
+        256
+      ],
+      "transparent": false,
+      "prompt": "old parchment paper texture, seamless, warm beige with subtle stains and aged edges, pixel art style, low saturation, no text"
+    },
+    "bg/town": {
+      "path": "/assets/bg/town.png",
+      "source": "pixellab",
+      "size": [
+        320,
+        320
+      ],
+      "transparent": false,
+      "prompt": "a cozy pixel art village town scene, small houses with warm brown roofs, green trees, grass and a dirt path, warm morning sky, 8-bit retro RPG background, low saturation warm colors, no blue or purple"
+    },
+    "avatar/placeholder": {
+      "path": "/assets/avatar/placeholder.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "pixel art game character bust, a cute hooded adventurer wearing a moss green cloak, 16-bit retro RPG style, front view"
+    },
+    "decor/plant": {
+      "path": "/assets/decor/plant.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a small potted green plant in a terracotta pot, 8-bit retro pixel art home decoration, warm palette"
+    },
+    "decor/bookshelf": {
+      "path": "/assets/decor/bookshelf.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a wooden bookshelf filled with colorful books, 8-bit retro pixel art home decoration, warm palette"
+    },
+    "decor/lamp": {
+      "path": "/assets/decor/lamp.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a standing floor lamp with a warm glowing lampshade, 8-bit retro pixel art home decoration, warm palette"
+    }
+  }
+}

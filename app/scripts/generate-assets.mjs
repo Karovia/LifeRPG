@@ -1,0 +1,332 @@
+#!/usr/bin/env node
+/**
+ * ============================================================
+ * 职见未来 · 像素素材批量生成器（generate-assets.mjs）
+ * ============================================================
+ * 直连 Pixellab API（https://api.pixellab.ai/v1，Bearer 认证）批量生成像素素材。
+ * API key 从 app/.env 的 VITE_PIXELLAB_API_KEY 读取（脚本不会打印 key）。
+ *
+ * 降级策略（已知账户余额可能为 $0）：
+ *   每个素材先尝试 Pixellab（超时 180s，失败重试 1 次）；
+ *   失败则统一调用 `python3 scripts/fallback-assets.py <key ...>` 程序化绘制兜底。
+ *   降级也保证产出全部文件，manifest.json 如实标注来源（pixellab | fallback）。
+ *   若遇到 401/402/403（鉴权/余额类错误），跳过后续素材的 API 尝试，直接全部兜底，节省时间。
+ *
+ * 用法：
+ *   node scripts/generate-assets.mjs            # 生成全部素材
+ *   node scripts/generate-assets.mjs ui/coin    # 只生成指定 key
+ * ============================================================
+ */
+
+import { spawnSync } from 'node:child_process'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const APP_ROOT = path.resolve(__dirname, '..')
+const OUT_ROOT = path.join(APP_ROOT, 'public', 'assets')
+const ENV_PATH = path.join(APP_ROOT, '.env')
+const FALLBACK_SCRIPT = path.join(__dirname, 'fallback-assets.py')
+
+const API_BASE = 'https://api.pixellab.ai/v1'
+const TIMEOUT_MS = 180_000 // 实测 64x64 pixflux ~24s，冷请求可能 >120s
+const MAX_ATTEMPTS = 2 // 首次 + 重试 1 次
+// 鉴权/余额类错误：继续重试无意义，直接全部降级
+const FATAL_STATUSES = new Set([401, 402, 403])
+
+/** @type {Array<{key:string, width:number, height:number, noBackground:boolean, prompt:string}>} */
+const ASSETS = [
+  {
+    key: 'ui/coin',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a shiny round gold coin with a star emblem, 8-bit retro pixel art game icon, warm low-saturation palette',
+  },
+  {
+    key: 'ui/chest',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a closed wooden treasure chest with gold trim and lock, 8-bit retro pixel art game icon, warm brown palette',
+  },
+  {
+    key: 'ui/xp-star',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a glowing golden five-pointed experience star, 8-bit retro pixel art game icon, warm palette',
+  },
+  {
+    key: 'bg/parchment',
+    width: 256,
+    height: 256,
+    noBackground: false,
+    prompt:
+      'old parchment paper texture, seamless, warm beige with subtle stains and aged edges, pixel art style, low saturation, no text',
+  },
+  {
+    key: 'bg/town',
+    width: 320,
+    height: 320,
+    noBackground: false,
+    prompt:
+      'a cozy pixel art village town scene, small houses with warm brown roofs, green trees, grass and a dirt path, warm morning sky, 8-bit retro RPG background, low saturation warm colors, no blue or purple',
+  },
+  {
+    key: 'avatar/placeholder',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'pixel art game character bust, a cute hooded adventurer wearing a moss green cloak, 16-bit retro RPG style, front view',
+  },
+  {
+    key: 'decor/plant',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a small potted green plant in a terracotta pot, 8-bit retro pixel art home decoration, warm palette',
+  },
+  {
+    key: 'decor/bookshelf',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a wooden bookshelf filled with colorful books, 8-bit retro pixel art home decoration, warm palette',
+  },
+  {
+    key: 'decor/lamp',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a standing floor lamp with a warm glowing lampshade, 8-bit retro pixel art home decoration, warm palette',
+  },
+  {
+    key: 'decor/trophy',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a golden trophy cup on a wooden base, 8-bit retro pixel art home decoration, warm palette',
+  },
+  {
+    key: 'decor/cat',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a cute sitting ginger cat, 8-bit retro pixel art pet, warm palette',
+  },
+]
+
+/** 从 app/.env 解析 VITE_PIXELLAB_API_KEY（不打印内容） */
+async function loadApiKey() {
+  try {
+    const raw = await readFile(ENV_PATH, 'utf8')
+    const m = raw.match(/^\s*VITE_PIXELLAB_API_KEY\s*=\s*(.+?)\s*$/m)
+    if (!m) return null
+    const value = m[1].replace(/^["']|["']$/g, '')
+    if (!value || value === 'your-pixellab-api-key') return null
+    return value
+  } catch {
+    return null
+  }
+}
+
+class PixellabHttpError extends Error {
+  constructor(message, status) {
+    super(message)
+    this.status = status
+  }
+}
+
+/** 调用 pixflux 生成，返回 base64；失败抛错 */
+async function generateViaPixellab(apiKey, asset) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  try {
+    const res = await fetch(`${API_BASE}/generate-image-pixflux`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        description: asset.prompt,
+        image_size: { width: asset.width, height: asset.height },
+        no_background: asset.noBackground,
+      }),
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new PixellabHttpError(
+        `HTTP ${res.status} ${text.slice(0, 160)}`,
+        res.status,
+      )
+    }
+    const data = await res.json()
+    const b64 = data?.image?.base64
+    if (!b64) throw new Error('响应缺少 image.base64')
+    return b64.replace(/^data:image\/\w+;base64,/, '')
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function saveBase64Png(b64, outPath) {
+  await mkdir(path.dirname(outPath), { recursive: true })
+  await writeFile(outPath, Buffer.from(b64, 'base64'))
+}
+
+/** 调用兜底脚本，为给定 key 列表程序化绘制 PNG；返回成功生成的 key 集合 */
+function runFallback(keys) {
+  if (keys.length === 0) return new Set()
+  console.log(`\n[fallback] 启动兜底绘制: ${keys.join(', ')}`)
+  const result = spawnSync('python3', [FALLBACK_SCRIPT, ...keys], {
+    cwd: APP_ROOT,
+    stdio: 'inherit',
+    timeout: 120_000,
+  })
+  if (result.error) {
+    console.error(`[fallback] 调用失败: ${result.error.message}`)
+    return new Set()
+  }
+  if (result.status !== 0) {
+    console.error(`[fallback] 脚本退出码 ${result.status}`)
+    // 部分文件可能已生成，逐一校验
+  }
+  return new Set(keys) // 由后续文件存在性校验兜底确认
+}
+
+async function fileExists(p) {
+  try {
+    const { access } = await import('node:fs/promises')
+    await access(p)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function main() {
+  const onlyKeys = process.argv.slice(2)
+  const targets =
+    onlyKeys.length > 0
+      ? ASSETS.filter((a) => onlyKeys.includes(a.key))
+      : ASSETS
+  if (targets.length === 0) {
+    console.error(`没有匹配的素材 key。可用: ${ASSETS.map((a) => a.key).join(', ')}`)
+    process.exit(2)
+  }
+
+  const apiKey = await loadApiKey()
+  if (!apiKey) {
+    console.log('[pixellab] 未找到有效 VITE_PIXELLAB_API_KEY，全部素材直接走兜底绘制')
+  }
+
+  /** @type {Record<string, 'pixellab'|'fallback'>} */
+  const sources = {}
+  const needFallback = []
+  let apiDead = !apiKey // 401/402/403 后置为 true，跳过后续 API 尝试
+
+  for (const asset of targets) {
+    const outPath = path.join(OUT_ROOT, `${asset.key}.png`)
+    if (apiDead) {
+      needFallback.push(asset.key)
+      continue
+    }
+    let ok = false
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS && !ok; attempt++) {
+      try {
+        console.log(
+          `[pixellab] ${asset.key} 生成中（第 ${attempt}/${MAX_ATTEMPTS} 次，最长 ${TIMEOUT_MS / 1000}s）…`,
+        )
+        const b64 = await generateViaPixellab(apiKey, asset)
+        await saveBase64Png(b64, outPath)
+        sources[asset.key] = 'pixellab'
+        ok = true
+        console.log(`[pixellab] ${asset.key} ✓ -> ${outPath}`)
+      } catch (err) {
+        const status = err instanceof PixellabHttpError ? err.status : undefined
+        console.warn(
+          `[pixellab] ${asset.key} 第 ${attempt} 次失败: ${err.message}`,
+        )
+        if (status && FATAL_STATUSES.has(status)) {
+          console.warn(
+            `[pixellab] 检测到 ${status}（鉴权/余额问题），后续素材全部改用兜底绘制`,
+          )
+          apiDead = true
+          break
+        }
+      }
+    }
+    if (!ok) needFallback.push(asset.key)
+  }
+
+  if (needFallback.length > 0) {
+    runFallback(needFallback)
+    for (const key of needFallback) sources[key] = 'fallback'
+  }
+
+  // 校验所有文件存在
+  const missing = []
+  for (const asset of targets) {
+    const outPath = path.join(OUT_ROOT, `${asset.key}.png`)
+    if (!(await fileExists(outPath))) missing.push(asset.key)
+  }
+  if (missing.length > 0) {
+    console.error(`\n✗ 以下素材生成失败（文件缺失）: ${missing.join(', ')}`)
+    process.exit(1)
+  }
+
+  // 写 manifest（若已存在则合并，保证多次分批运行后清单完整）
+  const manifestPath = path.join(OUT_ROOT, 'manifest.json')
+  /** @type {Record<string, unknown>} */
+  let existingAssets = {}
+  try {
+    const prev = JSON.parse(await readFile(manifestPath, 'utf8'))
+    if (prev && typeof prev === 'object' && prev.assets) existingAssets = prev.assets
+  } catch {
+    // 首次运行或清单损坏，忽略
+  }
+  const manifest = {
+    generatedAt: new Date().toISOString(),
+    generator: 'app/scripts/generate-assets.mjs',
+    assets: {
+      ...existingAssets,
+      ...Object.fromEntries(
+        targets.map((a) => [
+          a.key,
+          {
+            path: `/assets/${a.key}.png`,
+            source: sources[a.key] ?? 'fallback',
+            size: [a.width, a.height],
+            transparent: a.noBackground,
+            prompt: a.prompt,
+          },
+        ]),
+      ),
+    },
+  }
+  await mkdir(OUT_ROOT, { recursive: true })
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
+
+  const byPixellab = targets.filter((a) => sources[a.key] === 'pixellab').length
+  const byFallback = targets.length - byPixellab
+  console.log(`\n✓ 完成: ${byPixellab} 张来自 Pixellab，${byFallback} 张来自兜底绘制`)
+  console.log(`✓ manifest -> ${manifestPath}`)
+}
+
+main().catch((err) => {
+  console.error(`✗ 生成器异常: ${err.stack || err.message}`)
+  process.exit(1)
+})
