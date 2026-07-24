@@ -26,14 +26,14 @@ export default function EmptyState() {
         )}
       </div>
 
-      <h2 className="mt-3 font-pixel text-xs text-wood-dark">还没有冒险目标</h2>
+      <h2 className="mt-3 font-pixel text-xs text-wood-dark">成就树等待播种</h2>
       <p className="mt-2 text-xs leading-relaxed text-stone-dark">
-        在上方输入你的人生 / 职业目标，
+        在上方写下你的人生 / 职业目标，AI 会联网检索参考资料，
         <br />
-        点击「拆解目标」，开启第一段任务链吧！
+        把目标拆解成一棵多阶段成就树，并为每个阶段算出 Deadline。
       </p>
       <p className="mt-3 font-pixel text-[9px] text-stone">
-        TIP: 完成节点可获得 XP 与金币
+        TIP: 金色徽章 = 可挑战，灰色徽章 = 未解锁，CLEAR = 已通关
       </p>
     </PixelPanel>
   )

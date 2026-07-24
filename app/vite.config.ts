@@ -2,11 +2,14 @@ import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
+import { decomposeApi } from './vite-plugins/decompose-api'
 
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
-  plugins: [inspectAttr(), react()],
+  // decomposeApi: 注册 POST /api/decompose 开发中间件（AI 目标拆解），
+  // 与下方 /pixellab 代理共存，互不影响。
+  plugins: [inspectAttr(), react(), decomposeApi()],
   server: {
     port: 3000,
     proxy: {

@@ -3,7 +3,7 @@ import { PixelButton, PixelPanel } from '@/components/pixel'
 import { decomposeGoal } from '@/lib/ai'
 import { useGameStore } from '@/store/gameStore'
 import type { Quest, QuestNode } from '@/store/gameStore'
-import QuestNodeCard from './components/QuestNodeCard'
+import AchievementTree from './components/AchievementTree'
 import RewardToast, { type RewardInfo } from './components/RewardToast'
 import EmptyState from './components/EmptyState'
 
@@ -34,9 +34,51 @@ function findNode(nodes: QuestNode[], nodeId: string): QuestNode | null {
   return null
 }
 
+/** /api/decompose 的响应结构（与 vite-plugins/decompose-api.ts 对应） */
+interface DecomposeApiResponse {
+  goal: string
+  source: 'duckduckgo+rules' | 'rules-only'
+  references: { title: string; snippet: string }[]
+  phases: { name: string; weeks: number; deadline: string }[]
+  nodes: QuestNode[]
+}
+
+/** 校验 API 返回的节点数组基本结构 */
+function isValidNodes(nodes: unknown): nodes is QuestNode[] {
+  return (
+    Array.isArray(nodes) &&
+    nodes.length > 0 &&
+    nodes.every(
+      (n) =>
+        n &&
+        typeof n === 'object' &&
+        typeof (n as QuestNode).id === 'string' &&
+        typeof (n as QuestNode).title === 'string' &&
+        typeof (n as QuestNode).status === 'string',
+    )
+  )
+}
+
+/** 调用 vite 中间件拆解 API；失败/非 200 返回 null（由调用方降级） */
+async function fetchDecompose(goal: string): Promise<DecomposeApiResponse | null> {
+  try {
+    const res = await fetch('/api/decompose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goal }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as DecomposeApiResponse
+    if (!isValidNodes(data.nodes)) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
 /**
- * 职业规划 · 任务树页面
- * 输入人生/职业目标 → AI 拆解为节点树 → 逐级完成拿 XP/金币
+ * 职业规划 · 成就树页面
+ * 输入人生/职业目标 → AI 联网拆解为多阶段成就树（含阶段 Deadline）→ 逐级通关拿 XP/金币
  */
 export default function QuestsPage() {
   const quests = useGameStore((s) => s.quests)
@@ -47,6 +89,8 @@ export default function QuestsPage() {
   const [goalInput, setGoalInput] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reward, setReward] = useState<RewardInfo | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const activeQuest: Quest | null = useMemo(() => {
     if (quests.length === 0) return null
@@ -58,20 +102,45 @@ export default function QuestsPage() {
     [activeQuest],
   )
 
-  const handleDecompose = () => {
+  const handleDecompose = async () => {
     const goal = goalInput.trim()
-    if (!goal) return
-    const nodes = decomposeGoal(goal)
-    const quest: Quest = {
-      id: crypto.randomUUID(),
-      title: goal,
-      description: `AI 拆解于 ${new Date().toLocaleDateString('zh-CN')}，共 ${nodes.length} 个阶段`,
-      createdAt: new Date().toISOString(),
-      nodes,
+    if (!goal || loading) return
+    setLoading(true)
+    setNotice(null)
+    try {
+      const data = await fetchDecompose(goal)
+      let nodes: QuestNode[]
+      let description: string
+      if (data) {
+        // 在线：使用中间件返回的成就树（节点带 deadline / phase）
+        nodes = data.nodes
+        const refNote =
+          data.source === 'duckduckgo+rules'
+            ? `联网检索 ${data.references.length} 条参考资料`
+            : '未获取到联网资料，使用规则引擎'
+        description = `AI 拆解于 ${new Date().toLocaleDateString('zh-CN')} · ${data.phases.length} 个阶段 · ${refNote}`
+        if (data.source === 'rules-only') {
+          setNotice('联网搜索未成功，本次拆解基于内置规则引擎，Deadline 仍已按阶段生成。')
+        }
+      } else {
+        // 离线降级：本地 decomposeGoal（无 deadline/phase）
+        nodes = decomposeGoal(goal)
+        description = `本地拆解于 ${new Date().toLocaleDateString('zh-CN')} · 共 ${nodes.length} 个阶段`
+        setNotice('离线模式：无法连接拆解服务，已使用本地拆解（不含阶段 Deadline）。')
+      }
+      const quest: Quest = {
+        id: crypto.randomUUID(),
+        title: goal,
+        description,
+        createdAt: new Date().toISOString(),
+        nodes,
+      }
+      addQuest(quest)
+      setSelectedId(quest.id)
+      setGoalInput('')
+    } finally {
+      setLoading(false)
     }
-    addQuest(quest)
-    setSelectedId(quest.id)
-    setGoalInput('')
   }
 
   const handleComplete = (nodeId: string) => {
@@ -86,7 +155,7 @@ export default function QuestsPage() {
   const handleRemove = (questId: string) => {
     const q = quests.find((x) => x.id === questId)
     if (!q) return
-    if (window.confirm(`确定要放弃目标「${q.title}」吗？该目标的任务树将被移除。`)) {
+    if (window.confirm(`确定要放弃目标「${q.title}」吗？该目标的成就树将被移除。`)) {
       removeQuest(questId)
       if (selectedId === questId) setSelectedId(null)
     }
@@ -96,9 +165,9 @@ export default function QuestsPage() {
     <div className="flex flex-col gap-2">
       {/* ===== 目标输入区 ===== */}
       <PixelPanel>
-        <h1 className="font-pixel text-sm text-wood-dark">职业规划 · 任务树</h1>
+        <h1 className="font-pixel text-sm text-wood-dark">职业规划 · 成就树</h1>
         <p className="mt-2 text-xs text-stone-dark">
-          写下你的人生 / 职业目标，AI 会把它拆解成逐级解锁的冒险任务。
+          写下你的人生 / 职业目标，AI 会联网搜索并拆解成多阶段成就树，每个阶段都有 Deadline。
         </p>
         <div className="mt-3 flex gap-1">
           <input
@@ -107,17 +176,25 @@ export default function QuestsPage() {
             onKeyDown={(e) => e.key === 'Enter' && handleDecompose()}
             placeholder="例如：成为前端工程师"
             maxLength={40}
-            className="pixel-border-sm m-1 min-w-0 flex-1 bg-parchment-light px-3 py-2 text-sm text-ink placeholder:text-stone focus:outline-none"
+            disabled={loading}
+            className="pixel-border-sm m-1 min-w-0 flex-1 bg-parchment-light px-3 py-2 text-sm text-ink placeholder:text-stone focus:outline-none disabled:opacity-60"
           />
           <PixelButton
             variant="gold"
             onClick={handleDecompose}
-            disabled={!goalInput.trim()}
+            disabled={!goalInput.trim() || loading}
             className="shrink-0"
           >
-            拆解目标
+            {loading ? '拆解中…' : '拆解目标'}
           </PixelButton>
         </div>
+
+        {/* 拆解提示（离线模式 / 搜索失败降级） */}
+        {notice && (
+          <p className="pixel-border-sm m-1 mt-2 bg-gold-light/30 px-3 py-2 font-pixel text-[9px] leading-relaxed text-gold-dark [--pixel-border-color:#C9A24B]">
+            {notice}
+          </p>
+        )}
       </PixelPanel>
 
       {/* ===== 多目标切换 ===== */}
@@ -142,7 +219,7 @@ export default function QuestsPage() {
         </div>
       )}
 
-      {/* ===== 任务树 / 空状态 ===== */}
+      {/* ===== 成就树 / 空状态 ===== */}
       {!activeQuest ? (
         <EmptyState />
       ) : (
@@ -178,17 +255,9 @@ export default function QuestsPage() {
             </span>
           </div>
 
-          {/* 树状节点列表 */}
+          {/* 成就树（按阶段排列的天赋树） */}
           <div className="mt-4">
-            {activeQuest.nodes.map((node, i) => (
-              <QuestNodeCard
-                key={node.id}
-                node={node}
-                depth={0}
-                isLast={i === activeQuest.nodes.length - 1}
-                onComplete={handleComplete}
-              />
-            ))}
+            <AchievementTree nodes={activeQuest.nodes} onComplete={handleComplete} />
           </div>
         </PixelPanel>
       )}
