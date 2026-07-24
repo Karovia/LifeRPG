@@ -53,7 +53,7 @@ LLM 调用统一走 OpenAI 兼容协议（`POST {baseURL}/chat/completions`，Be
 | --- | --- | --- |
 | 首页 | `/` | 成长数据总览、今日目标、阶段 Deadline 撕日历轮播（4s 自动撕页 / 点击撕页 / 悬停暂停）、ToDo 快速清单 |
 | 成就树 | `/quests` | 目标 → 多阶段成就树（节点带 phase/deadline），逐级解锁；`POST /api/decompose` 开发中间件提供 AI 拆解：联网检索 + LLM 具体化拆解（未配置/失败自动回退规则引擎模板），节点全部带产出物与量化验收标准，前端展示 source 徽标（`app/vite-plugins/decompose-api.ts`） |
-| 小镇养成 | `/town` | 全屏沉浸式像素世界（参考 peteroravec.com）：24×16 跟随镜头大地图、小地图、NPC 对话好感度、委托任务、家园种植、宠物喂养、云/炊烟/昼夜罩层；水面/NPC 待机/猫行走为 FrameAnim 4 帧动画，角色按 y 排序遮挡；该路由下隐藏全局 HUD 与底导航，由小镇自带 HUD 与「离开」按钮接管 |
+| 小镇养成 | `/town` | 全屏沉浸式像素世界（参考 peteroravec.com）：24×16 跟随镜头大地图、小地图、NPC 对话好感度、委托任务、家园种植、宠物喂养、云/炊烟/昼夜罩层；水面/NPC 待机/猫行走为 FrameAnim 4 帧动画，角色按 y 排序遮挡；该路由下隐藏全局 HUD 与底导航，由小镇自带 HUD 与「离开」按钮接管。地图为多格建筑实体（红顶大屋/杂货铺/画室塔楼 2×2、水井/码头 1×1、大树带悬挑）+ 连贯路网 + 草地 13% 野花变体。玩法：**钓鱼**（点水面/码头抛竿，2-6s 上钩、1.2s 窗口收竿，+5~20 金币，结束 3s 冷却）；**三种作物**（胡萝卜/南瓜/小麦，成本与需水次数各异，家园抽屉切换种子）；**装饰店**（杂货铺商人「商店」页签出售盆栽/书架/落地灯/奖杯/猫咪摆件）+**我的庭院**（家园抽屉陈列已购装饰）；农田每格 2.5s 操作冷却（先落冷却再执行，修连点重复领奖 bug） |
 | 形象创建 | `/avatar` | 三步向导（起名 → 描述 → Pixellab 生成确认），支持重新生成；HUD 头像可点击直达 |
 | 魔法日记 | `/diary` | 汤姆·里德尔式日记本：文字吸入纸面、回复浮现，支持历史旧页；配置 LLM 后由魔法日记本人格回复（✨ AI 回应），失败静默回退本地纸灵（📜 纸灵回应） |
 | 简历生成 | `/resume` | 意向设置 → AI 生成 → 卷轴展示，支持复制/导出与信息差告示牌 |
@@ -68,5 +68,6 @@ LLM 调用统一走 OpenAI 兼容协议（`POST {baseURL}/chat/completions`，Be
 - 第一轮 11 张：金币、宝箱、XP 星、羊皮纸、小镇背景、占位头像、5 件家园装饰品
 - 第二轮 17 张：5 张导航图标、小镇地块、3 个 NPC、作物等
 - 第四轮：小镇 tiles 全部重绘并新增水面/栅栏/路灯/农田地块（旧图归档 `assets/_legacy/`）；5 组 Pixellab 4 帧动画（`anim/cat-walk`、`anim/water`、`anim/elder-idle`、`anim/merchant-idle`、`anim/artist-idle`）；3 个 NPC 立绘重绘
+- 第五轮 10 张：无缝地面（grass / grass2 野花变体 / path / field，部分经 PIL 程序化无缝重建）、多格建筑精灵（buildings/house-red 128×128、house-wood 128×128、house-tall 128×192、well 64×64、tree-big 64×128）、钓鱼与作物素材（tiles/dock、ui/fish、crop/pumpkin-ripe、crop/wheat-ripe）
 
 动画渲染：前端以 `animFrames('<name>')` 拼 `/assets/anim/<name>/frame-0..3.png` 路径（与 manifest 条目一致），由小镇的 `FrameAnim` 组件循环播放。重新生成脚本：`app/scripts/generate-assets.mjs`。

@@ -84,3 +84,21 @@ init-webapp.sh 初始化 `app/` → git init → 设计基础（像素字体/调
 - 冒烟：/、/admin、/town 200；`/assets/anim/cat-walk/frame-0.png`、`anim/water/frame-3.png`、`tiles/fence|lamp|field.png`、`manifest.json` 全部 200
 - 接缝：/admin 不进底部导航（HUD ⚙️ 进入）；/town 沉浸式布局（隐藏全局 HUD/底导航）未被破坏；manifest 5 组 anim 条目与前端 `animFrames()` 引用一致
 - 遗留：① NPC 对话仍为本地模板，未接 LLM（本轮范围外）；② DuckDuckGo 联网检索需在有外网环境再验证（本环境验证的是 llm-only / rules-only 路径）
+
+---
+
+# 第五轮迭代（2026-07-25）
+
+需求：小镇地图重构（无缝地面双层、连贯路网、多格建筑实体、水塘码头）｜修收获连点重复领奖 bug（2.5s 冷却）｜新增钓鱼玩法｜三种作物（胡萝卜/南瓜/小麦）｜商人装饰店 + 我的庭院。
+
+- `0be9f3d` feat(assets)：无缝地面 tiles（grass/grass2/path/field）、多格建筑精灵（buildings/house-red、house-wood、house-tall、well、tree-big）、钓鱼与作物素材（dock、ui/fish、pumpkin-ripe、wheat-ripe）
+- `98aa4c7` feat(town)：地图重构（地面双层 memo、13% 草地变体、连贯路网、多格建筑实体、水塘码头）、收获 2.5s 冷却修连点 bug、钓鱼玩法、三种作物、商人装饰店+我的庭院
+
+## 第五轮验收结果（✅ 通过，集成工程师_S03e）
+
+- 2 个 commit 在案（0be9f3d assets / 98aa4c7 town），`npm run build` 通过（83 模块）
+- dev server 冒烟（:3000，strictPort）：`/town`、`/assets/buildings/house-red.png`、`/assets/tiles/grass2.png`、`/assets/ui/fish.png` 全部 200；测试后进程已停（lsof+pgrep 确认，7100 Kimi Work 预览进程未受影响）
+- 代码快查：① 旧 `tiles/house.png` 在 src 零引用；② townData BUILDINGS footprint 与 manifest 尺寸一一对应（house-red/wood 2×2=128²、house-tall 2×2+悬挑1=128×192、well/dock 1×1=64²、tree-big 1×1+悬挑1=64×128）；③ 收获冷却先落冷却再执行（handleFarmClick：冷却检查 → setFarmCooldowns → 操作，且用 store.getState() 读最新 plots 杜绝闭包旧值重复领奖）
+- 修复清单：无（本轮无需修复的小问题）
+- 遗留：① 农田冷却中的变暗提示依赖下一次渲染刷新（纯展示细节，不影响冷却拦截）；② DuckDuckGo 联网检索仍需有外网环境验证（沿第二/四轮遗留）
+- 集成 commit：见下方 git log 最新一条 chore
