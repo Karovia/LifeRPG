@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PixelImage } from './PixelImage'
 import { fetchNpcReply, isLlmReady } from './llmChat'
 import {
+  DECOR_ITEMS,
   NPC_META,
   buildCommission,
   npcGreeting,
@@ -37,6 +38,8 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
   const updateCommissionStatus = useGameStore((s) => s.updateCommissionStatus)
   const addCoins = useGameStore((s) => s.addCoins)
   const llmConfig = useGameStore((s) => s.llmConfig)
+  const decorations = useGameStore((s) => s.inventory.decorations)
+  const buyDecoration = useGameStore((s) => s.buyDecoration)
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => [
     { from: 'npc', text: npcGreeting(npcId) },
@@ -46,6 +49,9 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
   const [reportHint, setReportHint] = useState<string | null>(null)
   /** LLM 思考中：禁用输入，展示「对方正在想…」动画 */
   const [thinking, setThinking] = useState(false)
+  /** 商人专属页签：闲聊 / 商店 */
+  const [tab, setTab] = useState<'chat' | 'shop'>('chat')
+  const [shopHint, setShopHint] = useState<string | null>(null)
 
   const lastInputRef = useRef<string | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
@@ -63,6 +69,18 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
   const npcCommissions = commissions.filter((c) => c.npcId === npcId)
   const activeCommission = npcCommissions.find((c) => c.status !== 'done')
   const doneCommissions = npcCommissions.filter((c) => c.status === 'done')
+
+  /** 购买装饰品：余额不足时 buyDecoration 返回 false，给提示 */
+  const handleBuy = (itemId: string) => {
+    const item = DECOR_ITEMS.find((d) => d.id === itemId)
+    if (!item || decorations.includes(item.id)) return
+    const ok = buyDecoration(item.id, item.price)
+    setShopHint(
+      ok
+        ? `已买下「${item.name}」！摆进你的庭院啦（家园 → 我的庭院）`
+        : `金币不足，「${item.name}」需要 ${item.price} 金币`,
+    )
+  }
 
   const send = async () => {
     const text = input.trim()
@@ -193,6 +211,62 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
           </PixelButton>
         </div>
 
+        {/* 商人专属页签：闲聊 / 商店 */}
+        {npcId === 'merchant' && (
+          <div className="flex gap-1">
+            <PixelButton
+              variant={tab === 'chat' ? 'gold' : 'wood'}
+              onClick={() => setTab('chat')}
+            >
+              闲聊
+            </PixelButton>
+            <PixelButton
+              variant={tab === 'shop' ? 'gold' : 'wood'}
+              onClick={() => setTab('shop')}
+            >
+              商店
+            </PixelButton>
+          </div>
+        )}
+
+        {npcId === 'merchant' && tab === 'shop' ? (
+          /* 装饰店：5 件装饰品，余额不足提示，已拥有置灰 */
+          <div className="pixel-border-sm m-1 bg-parchment-dark p-2">
+            <div className="mb-1 font-pixel text-[10px] text-wood-dark">
+              杂货铺 · 庭院装饰（当前 {player.coins} 金币）
+            </div>
+            <div className="grid grid-cols-5 gap-1">
+              {DECOR_ITEMS.map((item) => {
+                const owned = decorations.includes(item.id)
+                return (
+                  <div key={item.id} className="flex flex-col items-center gap-1">
+                    <div className="pixel-border-sm m-[2px] bg-parchment-light p-1">
+                      <PixelImage
+                        src={item.img}
+                        alt={item.name}
+                        className="h-9 w-9 object-contain"
+                        fallbackClassName="h-9 w-9 bg-wood"
+                        fallbackText={item.name.slice(0, 1)}
+                      />
+                    </div>
+                    <span className="font-pixel text-[9px] leading-3 text-ink">{item.name}</span>
+                    <PixelButton
+                      variant={owned ? 'wood' : 'gold'}
+                      disabled={owned}
+                      onClick={() => handleBuy(item.id)}
+                    >
+                      {owned ? '已拥有' : `${item.price} 金币`}
+                    </PixelButton>
+                  </div>
+                )
+              })}
+            </div>
+            {shopHint && (
+              <div className="mt-1 font-pixel text-[9px] text-berry">{shopHint}</div>
+            )}
+          </div>
+        ) : (
+          <>
         {/* 聊天记录 */}
         <div
           ref={logRef}
@@ -310,6 +384,8 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
             </div>
           )}
         </div>
+          </>
+        )}
       </PixelPanel>
     </div>
   )

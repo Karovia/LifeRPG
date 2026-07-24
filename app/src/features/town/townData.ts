@@ -25,18 +25,17 @@ export const TILE = 56
 export const WORLD_W = MAP_COLS * TILE
 export const WORLD_H = MAP_ROWS * TILE
 
-/** 地块编码：g 草地 p 石板路 f 花丛 h 房屋 t 树 F 农田 w 水面 n 栅栏 l 路灯 */
-export type TileCode = 'g' | 'p' | 'f' | 'h' | 't' | 'F' | 'w' | 'n' | 'l'
+/** 地块编码：g 草地（基底） p 石板路 F 农田 w 水面 n 栅栏 l 路灯 */
+export type TileCode = 'g' | 'p' | 'F' | 'w' | 'n' | 'l'
 
 /**
- * 小镇布局（24x16，程序化生成避免手写错位）：
- * - 房屋区：长者家（左上）、两间民居（北侧）、画室（右上）、玩家小屋（左下）、农舍（中下）
- * - 石板路网：横向主路贯穿 + 多条纵向小路 + 市集广场 + 农田便道
- * - 市集：主路北侧广场，两个货摊，商人坐镇
- * - 农田区：右下 2x2 田块（field 地块），四周便道环绕，西侧缺口以栅栏围合
- * - 水塘：中南不规则水面（water 帧动画），塘边花丛点缀
- * - 路灯：沿主路南北两侧错落点缀（lamp）
- * - 树木沿边缘与角落散布，花丛点缀路旁
+ * 小镇布局（24x16，程序化生成避免手写错位）——仅描述地面层：
+ * - 地面：默认草地（grass 基底 + 少量 grass2 野花变体，由渲染层按种子确定性撒布）
+ * - 路网：横向主路贯穿 + 通向各家门口的纵向支路 + 中心广场 + 农田便道
+ * - 水塘：中南不规则水面（water 帧动画），东岸接木码头（dock 实体，可站立垂钓）
+ * - 农田：右下 2x2 田块（field），西侧栅栏围合，其余三面便道环绕
+ * - 路灯：沿主路两侧错落点缀
+ * 建筑 / 大树 / 水井 / 码头均为多格实体（见 BUILDINGS），不再是单格图章。
  */
 function buildTownMap(): TileCode[][] {
   const g: TileCode[][] = Array.from({ length: MAP_ROWS }, () =>
@@ -49,67 +48,30 @@ function buildTownMap(): TileCode[][] {
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, c)
   }
 
-  // ----- 石板路网 -----
-  rect(0, 8, 23, 8, 'p') // 横向主路
+  // ----- 连贯石板路网 -----
+  rect(1, 8, 22, 8, 'p') // 横向主路（贯穿全镇）
   rect(3, 3, 3, 7, 'p') // 长者家门口 → 主路
   rect(3, 9, 3, 11, 'p') // 主路 → 玩家小屋
-  rect(6, 1, 6, 7, 'p') // 北侧纵路
-  rect(17, 1, 17, 7, 'p') // 北东纵路
-  rect(20, 3, 20, 7, 'p') // 画室门口 → 主路
-  rect(10, 6, 13, 7, 'p') // 市集广场
-  rect(11, 4, 12, 5, 'p') // 广场北侧通道
-  rect(18, 9, 18, 11, 'p') // 主路 → 农田便道
+  rect(13, 3, 13, 4, 'p') // 画室门口 → 广场
+  rect(19, 3, 19, 7, 'p') // 杂货铺门口 → 主路
+  rect(10, 5, 15, 7, 'p') // 中心广场（水井坐落其中）
+  rect(20, 9, 20, 11, 'p') // 主路 → 农田便道
   rect(18, 11, 21, 11, 'p') // 农田北便道
   rect(18, 14, 21, 14, 'p') // 农田南便道
   rect(21, 12, 21, 13, 'p') // 农田东便道
 
-  // ----- 房屋区 -----
-  rect(2, 1, 4, 2, 'h') // 长者家
-  rect(8, 1, 9, 2, 'h') // 民居一
-  rect(13, 1, 15, 2, 'h') // 民居二
-  rect(19, 1, 21, 2, 'h') // 画室
-  rect(10, 5, 10, 5, 'h') // 市集货摊·左
-  rect(13, 5, 13, 5, 'h') // 市集货摊·右
-  rect(2, 12, 4, 13, 'h') // 玩家小屋
-  rect(13, 12, 14, 13, 'h') // 农舍
-
-  // ----- 树木 -----
-  ;[0, 1, 5, 7, 10, 12, 16, 18, 23].forEach((x) => set(x, 0, 't')) // 北缘
-  ;[2, 4, 6, 10, 13, 15].forEach((y) => set(0, y, 't')) // 西缘
-  ;[1, 3, 5, 7, 9, 13, 15].forEach((y) => set(23, y, 't')) // 东缘
-  ;[1, 5, 7, 9, 12, 16, 19, 22].forEach((x) => set(x, 15, 't')) // 南缘
-  // 零星树（避开中南水塘）
-  set(11, 10, 't')
-  set(6, 11, 't')
-  set(16, 13, 't')
-  set(7, 13, 't')
-
-  // ----- 花丛（塘边与路旁成组点缀，避免均匀撒点） -----
+  // ----- 水塘（中南不规则小湖，帧动画水面；东岸 (12,11) 为码头格） -----
   ;[
-    [1, 4],
-    [5, 5],
-    [8, 6],
-    [15, 6],
-    [16, 4],
-    [22, 4],
-    [9, 10],
-    [15, 11],
-    [6, 14],
-    [12, 11],
-    [22, 10],
-    [11, 13], // 塘东
-    [8, 14], // 塘西
-  ].forEach(([x, y]) => set(x, y, 'f'))
-
-  // ----- 水塘（中南不规则小湖，帧动画水面） -----
-  ;[
+    [9, 11],
+    [10, 11],
+    [11, 11],
     [9, 12],
     [10, 12],
     [11, 12],
-    [8, 13],
+    [12, 12],
     [9, 13],
     [10, 13],
-    [9, 14],
+    [11, 13],
     [10, 14],
   ].forEach(([x, y]) => set(x, y, 'w'))
 
@@ -118,15 +80,15 @@ function buildTownMap(): TileCode[][] {
   set(18, 12, 'n')
   set(18, 13, 'n')
 
-  // ----- 路灯（沿主路两侧错落：北侧 4 盏 + 南侧 3 盏） -----
+  // ----- 路灯（沿主路两侧错落：北侧 4 盏 + 南侧 3 盏，避开支路与广场） -----
   ;[
     [1, 7],
     [7, 7],
-    [15, 7],
+    [16, 7],
     [22, 7],
     [5, 9],
-    [12, 9],
-    [19, 9],
+    [11, 9],
+    [17, 9],
   ].forEach(([x, y]) => set(x, y, 'l'))
 
   return g
@@ -136,21 +98,181 @@ export const TOWN_MAP: TileCode[][] = buildTownMap()
 
 /** 地块贴图与纯色降级；mini 为小地图专用色（缺省用 color） */
 export const TILE_STYLE: Record<TileCode, { img: string | null; color: string; mini?: string }> = {
+  // 草地基底（grass2 野花变体由渲染层按种子确定性替换，不走这里）
   g: { img: '/assets/tiles/grass.png', color: '#97A872' },
   p: { img: '/assets/tiles/path.png', color: '#C9B48A' },
-  f: { img: '/assets/tiles/flower.png', color: '#8FA06B' },
-  h: { img: '/assets/tiles/house.png', color: '#8A6242' },
-  t: { img: '/assets/tiles/tree.png', color: '#5F6C43' },
   F: { img: '/assets/tiles/field.png', color: '#7A5638' },
   // 水面由 TownMap 以帧动画渲染，此处仅提供降级底色 / 小地图色
   w: { img: null, color: '#7FA393' },
-  // 栅栏 / 路灯为透明装饰图，底色与草地一致；小地图用木色 / 暖金区分
+  // 栅栏 / 路灯为透明装饰图，叠在草地基底之上；小地图用木色 / 暖金区分
   n: { img: '/assets/tiles/fence.png', color: '#97A872', mini: '#8F7A56' },
   l: { img: '/assets/tiles/lamp.png', color: '#97A872', mini: '#C9A44A' },
 }
 
-/** 不可通行的地块（房屋/树/农田/水面/栅栏/路灯） */
-const BLOCKED_CODES: TileCode[] = ['h', 't', 'F', 'w', 'n', 'l']
+/**
+ * 草地变体（种子确定性）：约 13% 的格子使用带野花点缀的 grass2，
+ * 纯函数只依赖坐标，渲染多次结果一致，不会每次渲染乱跳。
+ */
+export function isFlowerGrass(x: number, y: number): boolean {
+  return (((x * 73856093) ^ (y * 19349663)) >>> 0) % 100 < 13
+}
+
+// ---------- 多格建筑 / 装饰实体 ----------
+
+export interface Building {
+  id: string
+  img: string
+  /** footprint（占位格）左上角坐标 */
+  x: number
+  y: number
+  /** footprint 宽高（格），占位格默认不可通行 */
+  w: number
+  h: number
+  /**
+   * 精灵向上额外延伸的格数（屋顶 / 树冠悬挑）。
+   * 素材按 64px/格设计：精灵高 = (h + spriteUp) * TILE，底边与 footprint 底边对齐。
+   */
+  spriteUp?: number
+  /** 可站立（码头：玩家能走上去垂钓） */
+  walkable?: boolean
+  /** 有烟囱（炊烟动效锚点：精灵顶部偏右） */
+  chimney?: boolean
+  /** 贴图缺失时的降级文字 */
+  fallbackText: string
+  /** 小地图色 */
+  mini: string
+}
+
+/**
+ * 多格建筑与大型装饰（y 排序按 footprint 底边）：
+ * - 长者住左上红顶大屋（house-red 2x2），杂货铺（house-wood 2x2）是商人地盘，
+ *   画室塔楼（house-tall 2x2+1 悬挑）是画师地盘，NPC 各站自家门口
+ * - 中心广场：石井（well 1x1）；玩家小屋在左下
+ * - 水塘东岸：木码头（dock 1x1，可站立，点击开始钓鱼）
+ * - 大树（tree-big 1x1+1 悬挑）：北缘一排 + 场内零星点缀
+ */
+export const BUILDINGS: Building[] = [
+  // ----- 房屋 -----
+  {
+    id: 'elder-home',
+    img: '/assets/buildings/house-red.png',
+    x: 2,
+    y: 1,
+    w: 2,
+    h: 2,
+    chimney: true,
+    fallbackText: '长者家',
+    mini: '#8A4A3C',
+  },
+  {
+    id: 'general-store',
+    img: '/assets/buildings/house-wood.png',
+    x: 18,
+    y: 1,
+    w: 2,
+    h: 2,
+    fallbackText: '杂货铺',
+    mini: '#6E5233',
+  },
+  {
+    id: 'studio-tower',
+    img: '/assets/buildings/house-tall.png',
+    x: 13,
+    y: 1,
+    w: 2,
+    h: 2,
+    spriteUp: 1,
+    chimney: true,
+    fallbackText: '画室',
+    mini: '#7A4A44',
+  },
+  {
+    id: 'player-home',
+    img: '/assets/buildings/house-red.png',
+    x: 2,
+    y: 12,
+    w: 2,
+    h: 2,
+    chimney: true,
+    fallbackText: '我的小屋',
+    mini: '#8A4A3C',
+  },
+  // ----- 广场水井 -----
+  {
+    id: 'plaza-well',
+    img: '/assets/buildings/well.png',
+    x: 12,
+    y: 6,
+    w: 1,
+    h: 1,
+    fallbackText: '水井',
+    mini: '#7A7568',
+  },
+  // ----- 钓鱼码头（可站立） -----
+  {
+    id: 'fishing-dock',
+    img: '/assets/tiles/dock.png',
+    x: 12,
+    y: 11,
+    w: 1,
+    h: 1,
+    walkable: true,
+    fallbackText: '码头',
+    mini: '#8F7A56',
+  },
+  // ----- 北缘大树 -----
+  ...[1, 5, 9, 16, 21].map(
+    (x): Building => ({
+      id: `tree-n${x}`,
+      img: '/assets/tiles/tree-big.png',
+      x,
+      y: 1,
+      w: 1,
+      h: 1,
+      spriteUp: 1,
+      fallbackText: '大树',
+      mini: '#5F6C43',
+    }),
+  ),
+  // ----- 场内零星大树 -----
+  ...([
+    [23, 3],
+    [1, 5],
+    [6, 6],
+    [22, 6],
+    [16, 10],
+    [7, 14],
+    [14, 14],
+  ] as const).map(
+    ([x, y]): Building => ({
+      id: `tree-${x}-${y}`,
+      img: '/assets/tiles/tree-big.png',
+      x,
+      y,
+      w: 1,
+      h: 1,
+      spriteUp: 1,
+      fallbackText: '大树',
+      mini: '#5F6C43',
+    }),
+  ),
+]
+
+/** 钓鱼码头格（点击它与点击水面一样开始钓鱼；可站立故不阻挡移动） */
+export const DOCK_POS: Pos = { x: 12, y: 11 }
+
+/** 不可通行的地块（农田/水面/栅栏/路灯；建筑占位格单独计算） */
+const BLOCKED_CODES: TileCode[] = ['F', 'w', 'n', 'l']
+
+/** 建筑占位格集合（不可通行部分；码头等 walkable 除外），预计算避免每步遍历 */
+const BUILDING_BLOCKED = new Set<string>(
+  BUILDINGS.filter((b) => !b.walkable).flatMap((b) => {
+    const cells: string[] = []
+    for (let y = b.y; y < b.y + b.h; y++)
+      for (let x = b.x; x < b.x + b.w; x++) cells.push(`${x},${y}`)
+    return cells
+  }),
+)
 
 /** 帧动画路径工具：/assets/anim/<name>/frame-0..3.png */
 export const animFrames = (name: string): string[] =>
@@ -171,8 +293,8 @@ export interface NpcMeta {
 }
 
 /**
- * NPC 站位（分布在有意义的地点）：
- * 长者 → 自家门口；商人 → 市集广场；画师 → 画室旁
+ * NPC 站位（各站自家门口，面向门前支路）：
+ * 长者 → 红顶大屋门口；商人 → 杂货铺门口；画师 → 画室塔楼门口
  * （注意：store 里画师 id 为 painter，素材文件名为 artist.png / artist-idle）
  */
 export const NPC_META: NpcMeta[] = [
@@ -180,21 +302,21 @@ export const NPC_META: NpcMeta[] = [
     id: 'elder',
     img: '/assets/npc/elder.png',
     anim: animFrames('elder-idle'),
-    pos: { x: 4, y: 3 },
+    pos: { x: 3, y: 3 },
     color: '#8A6242',
   },
   {
     id: 'merchant',
     img: '/assets/npc/merchant.png',
     anim: animFrames('merchant-idle'),
-    pos: { x: 12, y: 6 },
+    pos: { x: 19, y: 3 },
     color: '#9E7C33',
   },
   {
     id: 'painter',
     img: '/assets/npc/artist.png',
     anim: animFrames('artist-idle'),
-    pos: { x: 21, y: 3 },
+    pos: { x: 13, y: 3 },
     color: '#A8504B',
   },
 ]
@@ -212,21 +334,88 @@ export const FARM_CELLS: Pos[] = [
 export const PLAYER_START: Pos = { x: 3, y: 10 }
 export const PET_START: Pos = { x: 5, y: 10 }
 
-/** 烟囱位置（炊烟动效用，取各房屋顶部中点所在的格） */
-export const CHIMNEYS: Pos[] = [
-  { x: 4, y: 1 }, // 长者家
-  { x: 9, y: 1 }, // 民居一
-  { x: 14, y: 1 }, // 民居二
-  { x: 21, y: 1 }, // 画室
-  { x: 4, y: 12 }, // 玩家小屋
-  { x: 14, y: 12 }, // 农舍
-]
-
 export function isBlocked(pos: Pos): boolean {
   if (pos.x < 0 || pos.x >= MAP_COLS || pos.y < 0 || pos.y >= MAP_ROWS) return true
   if (BLOCKED_CODES.includes(TOWN_MAP[pos.y][pos.x])) return true
+  if (BUILDING_BLOCKED.has(`${pos.x},${pos.y}`)) return true
   if (NPC_POSITIONS.some((p) => p.x === pos.x && p.y === pos.y)) return true
   return false
+}
+
+// ---------- 作物图鉴（多种作物：种子成本 / 生长所需浇水次数 / 收获金币） ----------
+
+export type CropId = 'carrot' | 'pumpkin' | 'wheat'
+
+export interface CropDef {
+  id: CropId
+  name: string
+  /** 播种成本（金币） */
+  cost: number
+  /** 每个生长阶段所需浇水次数（阶段 0→1→2，次数越多越慢） */
+  waterings: number
+  /** 成熟收获金币 */
+  reward: number
+  /** 成熟贴图（seed / sprout 阶段共用现有贴图） */
+  ripeImg: string
+}
+
+export const CROPS: Record<CropId, CropDef> = {
+  carrot: {
+    id: 'carrot',
+    name: '胡萝卜',
+    cost: 0,
+    waterings: 1,
+    reward: 15,
+    ripeImg: '/assets/crop/ripe.png',
+  },
+  pumpkin: {
+    id: 'pumpkin',
+    name: '南瓜',
+    cost: 5,
+    waterings: 2,
+    reward: 30,
+    ripeImg: '/assets/crop/pumpkin-ripe.png',
+  },
+  wheat: {
+    id: 'wheat',
+    name: '小麦',
+    cost: 3,
+    waterings: 3,
+    reward: 20,
+    ripeImg: '/assets/crop/wheat-ripe.png',
+  },
+}
+
+export const CROP_LIST: CropDef[] = [CROPS.carrot, CROPS.pumpkin, CROPS.wheat]
+
+/** 地块存的是作物 id；兼容旧存档里的中文作物名（默认按胡萝卜处理） */
+export function cropDef(crop: string): CropDef {
+  if (crop in CROPS) return CROPS[crop as CropId]
+  if (crop.includes('南瓜')) return CROPS.pumpkin
+  if (crop.includes('小麦')) return CROPS.wheat
+  return CROPS.carrot
+}
+
+// ---------- 商人装饰店 ----------
+
+export interface DecorItem {
+  id: string
+  name: string
+  price: number
+  img: string
+}
+
+export const DECOR_ITEMS: DecorItem[] = [
+  { id: 'plant', name: '盆栽', price: 20, img: '/assets/decor/plant.png' },
+  { id: 'bookshelf', name: '书架', price: 45, img: '/assets/decor/bookshelf.png' },
+  { id: 'lamp', name: '落地灯', price: 35, img: '/assets/decor/lamp.png' },
+  { id: 'trophy', name: '奖杯', price: 60, img: '/assets/decor/trophy.png' },
+  { id: 'cat', name: '猫咪摆件', price: 50, img: '/assets/decor/cat.png' },
+]
+
+/** 按 id 查装饰品（背包陈列用；旧存档可能有未知 id，返回 undefined 时跳过） */
+export function decorById(id: string): DecorItem | undefined {
+  return DECOR_ITEMS.find((d) => d.id === id)
 }
 
 // ---------- NPC 对话（本地 mock，按性格分词） ----------

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import {
+  BUILDINGS,
   FARM_CELLS,
   MAP_COLS,
   MAP_ROWS,
@@ -38,6 +39,12 @@ export function MiniMap({ playerPos, petPos, petAdopted }: MiniMapProps) {
     // 农田格强调
     ctx.fillStyle = TILE_STYLE.F.color
     FARM_CELLS.forEach((c) => ctx.fillRect(c.x * SCALE, c.y * SCALE, SCALE, SCALE))
+
+    // 建筑 footprint（房屋 / 水井 / 大树按各自小地图色，码头用木色）
+    BUILDINGS.forEach((b) => {
+      ctx.fillStyle = b.mini
+      ctx.fillRect(b.x * SCALE, b.y * SCALE, b.w * SCALE, b.h * SCALE)
+    })
 
     // NPC 光点（浆果红）
     ctx.fillStyle = '#A8504B'

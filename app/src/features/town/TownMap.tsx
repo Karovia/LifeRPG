@@ -1,12 +1,13 @@
 import { useGameStore } from '@/store/gameStore'
-import type { CSSProperties } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { MiniMap } from './MiniMap'
 import { FrameAnim } from './FrameAnim'
 import { PixelImage } from './PixelImage'
 import {
+  BUILDINGS,
   CAT_WALK_FRAMES,
-  CHIMNEYS,
+  CROPS,
+  DOCK_POS,
   FARM_CELLS,
   MAP_COLS,
   MAP_ROWS,
@@ -19,14 +20,16 @@ import {
   WATER_FRAMES,
   WORLD_H,
   WORLD_W,
+  cropDef,
   isBlocked,
+  isFlowerGrass,
+  type CropId,
   type Pos,
 } from './townData'
 
-/** 作物贴图（按生长阶段 0/1/2）与降级字符 */
-const CROP_IMG = ['/assets/crop/seed.png', '/assets/crop/sprout.png', '/assets/crop/ripe.png']
+/** 作物生长阶段 0/1 的共用贴图与降级字符（成熟贴图按作物种类区分） */
+const CROP_STAGE_IMG = ['/assets/crop/seed.png', '/assets/crop/sprout.png']
 const CROP_FALLBACK = ['·', '🌱', '🌾']
-const CROP_NAMES = ['胡萝卜', '小麦', '番茄']
 
 const KEY_DIRS: Record<string, Pos> = {
   ArrowUp: { x: 0, y: -1 },
@@ -44,7 +47,13 @@ const HUNGER_DECAY_MS = 20000
 const CLICK_STEP_MS = 140
 const WALK_IDLE_MS = 240
 const FEED_COST = 5
-const HARVEST_COINS = 15
+/** 农田格操作冷却：点击后 2.5s 内该格忽略再次点击（修连点重复领奖 bug） */
+const FARM_COOLDOWN_MS = 2500
+/** 钓鱼：抛竿后 2-6s 随机上钩，上钩后 1.2s 内收竿，结束后 3s 冷却 */
+const FISH_BITE_MIN_MS = 2000
+const FISH_BITE_SPAN_MS = 4000
+const FISH_REEL_WINDOW_MS = 1200
+const FISH_COOLDOWN_MS = 3000
 
 /** 云朵配置：缓慢漂移（世界层内，负 delay 让初始位置散开） */
 const CLOUDS = [
@@ -79,17 +88,152 @@ function dayNightBackground(date: Date): string {
   return 'rgba(34,24,20,0.33)'
 }
 
+/**
+ * 地面层（静态，memo 后只渲染一次）：
+ * 每格先铺 grass 基底（约 13% 种子确定性替换 grass2 野花变体），
+ * 再按地块码叠加 path / field / fence / lamp / 水面帧动画。
+ */
+const GroundLayer = memo(function GroundLayer() {
+  return (
+    <div
+      className="grid"
+      style={{ gridTemplateColumns: `repeat(${MAP_COLS}, ${TILE}px)`, width: WORLD_W }}
+    >
+      {Array.from({ length: MAP_ROWS * MAP_COLS }).map((_, i) => {
+        const x = i % MAP_COLS
+        const y = Math.floor(i / MAP_COLS)
+        const code = TOWN_MAP[y][x]
+        const style = TILE_STYLE[code]
+        return (
+          <div
+            key={i}
+            className="relative"
+            style={{ width: TILE, height: TILE, backgroundColor: TILE_STYLE.g.color }}
+          >
+            {/* 草地基底（g 格直接是基底；其他地块码也先铺草地再叠装饰/路面） */}
+            <PixelImage
+              src={isFlowerGrass(x, y) ? '/assets/tiles/grass2.png' : TILE_STYLE.g.img!}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              fallbackClassName="pointer-events-none absolute inset-0"
+              fallbackText=""
+            />
+            {code === 'w' ? (
+              /* 水面：帧动画（降级链：water 帧 → tiles/water.png → 底色块） */
+              <FrameAnim
+                frames={WATER_FRAMES}
+                fps={4}
+                fallbackImg="/assets/tiles/water.png"
+                alt="水面"
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                fallbackClassName="pointer-events-none absolute inset-0"
+                fallbackStyle={{ backgroundColor: style.color }}
+                fallbackText=""
+              />
+            ) : (
+              code !== 'g' &&
+              style.img && (
+                <PixelImage
+                  src={style.img}
+                  alt=""
+                  className="pointer-events-none absolute inset-0 h-full w-full"
+                  fallbackClassName="pointer-events-none absolute inset-0"
+                  fallbackText=""
+                />
+              )
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+})
+
+/**
+ * 多格建筑层（静态，memo 后只渲染一次）：
+ * 每个建筑是一张跨格精灵图，底边与 footprint 底边对齐，
+ * 向上可悬挑 spriteUp 格（屋顶/树冠），y 排序按 footprint 底边。
+ */
+const BuildingLayer = memo(function BuildingLayer() {
+  return (
+    <>
+      {BUILDINGS.map((b) => {
+        const spriteUp = b.spriteUp ?? 0
+        const spriteH = (b.h + spriteUp) * TILE
+        const spriteW = b.w * TILE
+        return (
+          <div
+            key={b.id}
+            className="pointer-events-none absolute"
+            style={{
+              left: b.x * TILE,
+              top: (b.y + b.h) * TILE - spriteH,
+              width: spriteW,
+              height: spriteH,
+              zIndex: 10 + b.y + b.h - 1,
+            }}
+          >
+            <PixelImage
+              src={b.img}
+              alt={b.fallbackText}
+              className="h-full w-full object-contain"
+              fallbackClassName="h-full w-full bg-wood"
+              fallbackText={b.fallbackText}
+            />
+          </div>
+        )
+      })}
+
+      {/* 炊烟（有烟囱的建筑，精灵顶部偏右；z 高于所有 y 排序实体） */}
+      {BUILDINGS.filter((b) => b.chimney).map((b) => {
+        const spriteUp = b.spriteUp ?? 0
+        const spriteTop = (b.y + b.h) * TILE - (b.h + spriteUp) * TILE
+        return (
+          <div
+            key={`${b.id}-smoke`}
+            className="pointer-events-none absolute z-30"
+            style={{ left: (b.x + b.w * 0.68) * TILE, top: spriteTop + 4 }}
+          >
+            {[0, 1, 2].map((k) => (
+              <span
+                key={k}
+                className="town-smoke-puff absolute block h-[6px] w-[6px] bg-[#D9D0BC]"
+                style={{ animationDelay: `${k * 1.1}s`, opacity: 0 }}
+              />
+            ))}
+          </div>
+        )
+      })}
+    </>
+  )
+})
+
+/** 钓鱼状态机：idle → waiting（2-6s）→ bite（1.2s 窗口）→ cooldown（3s）→ idle */
+type FishingState =
+  | { phase: 'idle' }
+  | { phase: 'waiting'; spot: Pos }
+  | { phase: 'bite'; spot: Pos }
+  | { phase: 'cooldown' }
+
+interface FishPop {
+  id: number
+  spot: Pos
+  gain: number
+}
+
 interface TownMapProps {
   /** 对话打开时暂停移动 */
   movementEnabled: boolean
   onNpcClick: (npcId: string) => void
+  /** 当前选中的种子（家园抽屉里切换） */
+  selectedSeed: CropId
 }
 
 /**
  * 全屏沉浸式小镇世界：24x16 可滚动大地图 + 镜头跟随玩家 +
- * 云 / 炊烟 / 昼夜氛围 + 左上角小地图（DOM overlay 风格）。
+ * 多格建筑 / 云 / 炊烟 / 昼夜氛围 + 钓鱼 + 多种作物农田 + 左上角小地图。
  */
-export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
+export function TownMap({ movementEnabled, onNpcClick, selectedSeed }: TownMapProps) {
   const player = useGameStore((s) => s.player)
   const plots = useGameStore((s) => s.town.garden.plots)
   const pet = useGameStore((s) => s.town.garden.pet)
@@ -111,6 +255,11 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
   const [toast, setToast] = useState<string | null>(null)
   const [viewport, setViewport] = useState({ w: 0, h: 0 })
   const [now, setNow] = useState(() => new Date())
+  /** 农田格冷却表：cellIndex → 冷却截止时刻（ms）；冷却中该格变暗并忽略点击 */
+  const [farmCooldowns, setFarmCooldowns] = useState<Record<number, number>>({})
+  const [fishing, setFishing] = useState<FishingState>({ phase: 'idle' })
+  /** 钓到鱼的上浮动效（鱼图标 + 金币数） */
+  const [fishPops, setFishPops] = useState<FishPop[]>([])
 
   const viewportRef = useRef<HTMLDivElement>(null)
   const worldRef = useRef<HTMLDivElement>(null)
@@ -121,6 +270,15 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
   const petSeenRef = useRef(false)
   const heartSeq = useRef(0)
   const walkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** 农田浇水进度：plotId:stage → 已浇水次数（跨阶段不清，成熟/收获后键自然失效） */
+  const waterProgressRef = useRef<Record<string, number>>({})
+  /** 钓鱼计时器（卸载时统一清理） */
+  const biteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reelTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fishCooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fishingRef = useRef(fishing)
+  fishingRef.current = fishing
+  const fishPopSeq = useRef(0)
 
   // 视口尺寸（镜头计算用）
   useEffect(() => {
@@ -156,6 +314,9 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
   useEffect(
     () => () => {
       if (walkTimer.current) clearTimeout(walkTimer.current)
+      if (biteTimer.current) clearTimeout(biteTimer.current)
+      if (reelTimer.current) clearTimeout(reelTimer.current)
+      if (fishCooldownTimer.current) clearTimeout(fishCooldownTimer.current)
     },
     [],
   )
@@ -253,22 +414,67 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
     return () => clearInterval(id)
   }, [pet.adopted, feedPet])
 
-  // 农田点击：空→播种，未熟→浇水推进，成熟→收获
+  /**
+   * 农田点击（含连点修复）：
+   * - 每格 2.5s 冷却，冷却中直接忽略（组件层 disabled，不靠 store 防御）
+   * - 操作前用 useGameStore.getState() 读最新 plots，杜绝闭包旧值重复领奖
+   * - 空→播种（扣种子成本）；未熟→浇水（按作物需水次数推进）；成熟→收获
+   */
   const handleFarmClick = (cellIndex: number) => {
-    const plot = plots[cellIndex]
+    const nowMs = Date.now()
+    if ((farmCooldowns[cellIndex] ?? 0) > nowMs) return
+
+    // 先落冷却，再执行操作：快速连点第二次必被拦
+    const until = nowMs + FARM_COOLDOWN_MS
+    setFarmCooldowns((prev) => ({ ...prev, [cellIndex]: until }))
+    setTimeout(() => {
+      setFarmCooldowns((prev) => {
+        if (prev[cellIndex] !== until) return prev
+        const next = { ...prev }
+        delete next[cellIndex]
+        return next
+      })
+    }, FARM_COOLDOWN_MS)
+
+    // 从 store 读最新状态（不用渲染闭包里的 plots，避免连点时旧 stage 重复领奖）
+    const state = useGameStore.getState()
+    const plot = state.town.garden.plots[cellIndex]
+
     if (!plot) {
-      plantCrop(CROP_NAMES[plots.length % CROP_NAMES.length])
-      setToast('播种成功！再点击浇水让它长大')
+      const def = CROPS[selectedSeed]
+      if (state.player.coins < def.cost) {
+        setToast(`金币不足，${def.name}种子需要 ${def.cost} 金币`)
+        return
+      }
+      if (def.cost > 0) addCoins(-def.cost)
+      plantCrop(def.id)
+      setToast(
+        def.cost > 0
+          ? `播下${def.name}种子（-${def.cost} 金币）……点击浇水让它长大`
+          : `播下${def.name}种子……点击浇水让它长大`,
+      )
       return
     }
+
+    const def = cropDef(plot.crop)
     if (plot.stage < 2) {
-      advanceCropStage(plot.id)
-      setToast(plot.stage === 0 ? '浇水中……发芽了！' : '浇水中……作物成熟了！')
+      const key = `${plot.id}:${plot.stage}`
+      const progress = (waterProgressRef.current[key] ?? 0) + 1
+      if (progress >= def.waterings) {
+        delete waterProgressRef.current[key]
+        advanceCropStage(plot.id)
+        setToast(plot.stage === 0 ? '浇水中……发芽了！' : '浇水中……作物成熟了！')
+      } else {
+        waterProgressRef.current[key] = progress
+        setToast(`浇水中……${def.name}还需 ${def.waterings - progress} 次浇水`)
+      }
       return
     }
+
+    // stage === 2 才允许收获（最新状态校验过，闭包旧值连点无法重复领奖）
     harvestPlot(plot.id)
-    addCoins(HARVEST_COINS)
-    setToast(`收获「${plot.crop}」 +${HARVEST_COINS} 金币`)
+    addCoins(def.reward)
+    setToast(`收获「${def.name}」 +${def.reward} 金币`)
   }
 
   // 喂食：点击猫咪，花少量金币 + 爱心动效
@@ -285,7 +491,50 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
     setTimeout(() => setHearts((h) => h.filter((x) => x !== id)), 900)
   }
 
-  /** 世界层点击：换算世界坐标 → 格子，按 NPC / 宠物 / 农田 / 移动 优先级处理 */
+  /** 抛竿：进入等待，2-6s 随机上钩；上钩 1.2s 未收竿则鱼跑，随后 3s 冷却 */
+  const startFishing = (spot: Pos) => {
+    if (fishingRef.current.phase === 'cooldown') {
+      setToast('鱼竿还没收拾好……稍等一下')
+      return
+    }
+    if (fishingRef.current.phase !== 'idle') {
+      setToast('浮标已有动静，专心等鱼上钩！')
+      return
+    }
+    setFishing({ phase: 'waiting', spot })
+    const biteDelay = FISH_BITE_MIN_MS + Math.random() * FISH_BITE_SPAN_MS
+    biteTimer.current = setTimeout(() => {
+      setFishing({ phase: 'bite', spot })
+      reelTimer.current = setTimeout(() => {
+        // 超时未收竿：鱼跑了
+        setToast('鱼跑了……再来一次！')
+        setFishing({ phase: 'cooldown' })
+        fishCooldownTimer.current = setTimeout(
+          () => setFishing({ phase: 'idle' }),
+          FISH_COOLDOWN_MS,
+        )
+      }, FISH_REEL_WINDOW_MS)
+    }, biteDelay)
+  }
+
+  /** 收竿（仅上钩窗口内有效）：随机 +5~20 金币 + 鱼图标上浮动效 */
+  const reelIn = (spot: Pos) => {
+    if (reelTimer.current) clearTimeout(reelTimer.current)
+    const gain = 5 + Math.floor(Math.random() * 16)
+    addCoins(gain)
+    fishPopSeq.current += 1
+    const id = fishPopSeq.current
+    setFishPops((p) => [...p, { id, spot, gain }])
+    setTimeout(() => setFishPops((p) => p.filter((f) => f.id !== id)), 1100)
+    setToast(`钓到一条鱼！ +${gain} 金币`)
+    setFishing({ phase: 'cooldown' })
+    fishCooldownTimer.current = setTimeout(() => setFishing({ phase: 'idle' }), FISH_COOLDOWN_MS)
+  }
+
+  /**
+   * 世界层点击：换算世界坐标 → 格子。
+   * 优先级：收竿（上钩窗口内任意点击）→ NPC → 宠物 → 农田 → 钓鱼（水面/码头）→ 移动。
+   */
   const handleWorldClick = (e: React.MouseEvent) => {
     const world = worldRef.current
     if (!world) return
@@ -295,6 +544,12 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
       y: Math.floor((e.clientY - rect.top) / TILE),
     }
     if (pos.x < 0 || pos.x >= MAP_COLS || pos.y < 0 || pos.y >= MAP_ROWS) return
+
+    // 上钩窗口内：任意点击都视为收竿（移动端友好，不用精确点浮标）
+    if (fishingRef.current.phase === 'bite') {
+      reelIn((fishingRef.current as { phase: 'bite'; spot: Pos }).spot)
+      return
+    }
 
     const npc = NPC_META.find((n) => n.pos.x === pos.x && n.pos.y === pos.y)
     if (npc) {
@@ -308,6 +563,15 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
     const farmIdx = FARM_CELLS.findIndex((c) => c.x === pos.x && c.y === pos.y)
     if (farmIdx >= 0) {
       handleFarmClick(farmIdx)
+      return
+    }
+    // 点击水面 / 木码头 → 钓鱼（码头格上抛竿，浮标落在最近的水面格）
+    if (TOWN_MAP[pos.y][pos.x] === 'w') {
+      startFishing(pos)
+      return
+    }
+    if (pos.x === DOCK_POS.x && pos.y === DOCK_POS.y) {
+      startFishing({ x: DOCK_POS.x, y: DOCK_POS.y + 1 })
       return
     }
     if (!movementEnabled || isBlocked(pos)) return
@@ -375,6 +639,47 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
           100% { transform: translate(6px, -54px) scale(1.7); opacity: 0; }
         }
         .town-smoke-puff { animation: town-smoke-rise 3.2s steps(8, end) infinite; }
+        @keyframes town-bobber-bob {
+          0%, 100% { transform: translate(-50%, -50%); }
+          50% { transform: translate(-50%, -30%); }
+        }
+        .town-bobber {
+          position: absolute; left: 0; top: 0;
+          width: 8px; height: 8px;
+          background: #A8504B; border: 2px solid #F4EBD4;
+          animation: town-bobber-bob 1.2s steps(2, end) infinite;
+        }
+        @keyframes town-bobber-sink {
+          0%, 100% { transform: translate(-50%, -10%); }
+          50% { transform: translate(-50%, 30%); }
+        }
+        .town-bobber-bite { animation: town-bobber-sink 0.4s steps(2, end) infinite; }
+        @keyframes town-bite-pop {
+          0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+          30% { transform: translate(-50%, -26px) scale(1.2); opacity: 1; }
+          100% { transform: translate(-50%, -22px) scale(1); opacity: 1; }
+        }
+        .town-bite-mark {
+          position: absolute; left: 0; top: 0;
+          font-size: 16px; line-height: 1;
+          animation: town-bite-pop 0.35s steps(3, end) both;
+        }
+        @keyframes town-splash-ring {
+          0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.9; }
+          100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+        }
+        .town-splash-ring {
+          position: absolute; left: 0; top: 0;
+          width: 14px; height: 10px;
+          border: 2px solid #EDE3C8; border-radius: 50%;
+          animation: town-splash-ring 0.6s steps(4, end) infinite;
+        }
+        @keyframes town-fish-pop {
+          0% { transform: translate(-50%, 0) scale(0.7); opacity: 0; }
+          25% { transform: translate(-50%, -18px) scale(1.1); opacity: 1; }
+          100% { transform: translate(-50%, -40px) scale(1); opacity: 0; }
+        }
+        .town-fish-pop { animation: town-fish-pop 1.05s steps(7, end) forwards; }
       `}</style>
 
       {/* 世界层（镜头平移） */}
@@ -390,96 +695,112 @@ export function TownMap({ movementEnabled, onNpcClick }: TownMapProps) {
           backgroundColor: TILE_STYLE.g.color,
         }}
       >
-        {/* 地面格子 */}
-        <div
-          className="grid"
-          style={{ gridTemplateColumns: `repeat(${MAP_COLS}, ${TILE}px)`, width: WORLD_W }}
-        >
-          {Array.from({ length: MAP_ROWS * MAP_COLS }).map((_, i) => {
-            const x = i % MAP_COLS
-            const y = Math.floor(i / MAP_COLS)
-            const tile = TILE_STYLE[TOWN_MAP[y][x]]
-            const farmIdx = FARM_CELLS.findIndex((c) => c.x === x && c.y === y)
-            const plot = farmIdx >= 0 ? plots[farmIdx] : undefined
-            const isTarget = target?.x === x && target?.y === y
+        {/* 地面层（静态 memo：grass 基底 + grass2 变体 + 路网 / 水面 / 农田 / 栅栏 / 路灯） */}
+        <GroundLayer />
 
-            return (
-              <div
-                key={i}
-                className="relative"
-                style={{ width: TILE, height: TILE, backgroundColor: tile.color }}
-              >
-                {TOWN_MAP[y][x] === 'w' ? (
-                  /* 水面：帧动画（降级链：water 帧 → tiles/water.png → 底色块） */
-                  <FrameAnim
-                    frames={WATER_FRAMES}
-                    fps={4}
-                    fallbackImg="/assets/tiles/water.png"
-                    alt="水面"
-                    className="pointer-events-none absolute inset-0 h-full w-full"
-                    fallbackClassName="pointer-events-none absolute inset-0"
-                    fallbackStyle={{ backgroundColor: tile.color }}
-                    fallbackText=""
-                  />
-                ) : (
-                  tile.img && (
-                    <PixelImage
-                      src={tile.img}
-                      alt=""
-                      className="pointer-events-none absolute inset-0 h-full w-full"
-                      fallbackClassName="pointer-events-none absolute inset-0"
-                      fallbackText=""
-                    />
-                  )
-                )}
+        {/* 多格建筑层（静态 memo：大房子 / 塔楼 / 水井 / 码头 / 大树 + 炊烟） */}
+        <BuildingLayer />
 
-                {/* 点击目标指示 */}
-                {isTarget && (
-                  <div className="pointer-events-none absolute inset-1 z-10 border-2 border-dashed border-gold" />
-                )}
+        {/* 农田覆盖层（随 plots / 冷却变化重渲染，只有 4 格） */}
+        {FARM_CELLS.map((c, farmIdx) => {
+          const plot = plots[farmIdx]
+          const cooling = (farmCooldowns[farmIdx] ?? 0) > Date.now()
+          return (
+            <div
+              key={farmIdx}
+              className="pointer-events-none absolute flex items-center justify-center"
+              style={{
+                left: c.x * TILE,
+                top: c.y * TILE,
+                width: TILE,
+                height: TILE,
+                zIndex: 10 + c.y,
+              }}
+            >
+              {plot ? (
+                <PixelImage
+                  src={
+                    plot.stage === 2 ? cropDef(plot.crop).ripeImg : CROP_STAGE_IMG[plot.stage]
+                  }
+                  alt={`${cropDef(plot.crop).name} 阶段${plot.stage}`}
+                  className="h-4/5 w-4/5 object-contain"
+                  fallbackClassName="h-4/5 w-4/5"
+                  fallbackText={CROP_FALLBACK[plot.stage]}
+                />
+              ) : (
+                <span className="font-pixel text-[10px] text-parchment-dark">+</span>
+              )}
+              {plot?.stage === 2 && (
+                <div className="absolute inset-[3px] border-2 border-gold" />
+              )}
+              {/* 冷却中：变暗提示该格暂时不可操作（组件层 disabled 态） */}
+              {cooling && (
+                <div className="absolute inset-0 bg-ink/35 transition-opacity" />
+              )}
+            </div>
+          )
+        })}
 
-                {/* 农田内容 */}
-                {farmIdx >= 0 && (
-                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                    {plot ? (
-                      <PixelImage
-                        src={CROP_IMG[plot.stage]}
-                        alt={`${plot.crop} 阶段${plot.stage}`}
-                        className="h-4/5 w-4/5 object-contain"
-                        fallbackClassName="h-4/5 w-4/5"
-                        fallbackText={CROP_FALLBACK[plot.stage]}
-                      />
-                    ) : (
-                      <span className="font-pixel text-[10px] text-parchment-dark">+</span>
-                    )}
-                    {plot?.stage === 2 && (
-                      <div className="absolute inset-[3px] border-2 border-gold" />
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* 炊烟（房屋烟囱上升烟圈；z 高于所有 y 排序实体） */}
-        {CHIMNEYS.map((c, i) => (
+        {/* 点击移动目标指示 */}
+        {target && (
           <div
-            key={i}
+            className="pointer-events-none absolute z-20 border-2 border-dashed border-gold"
+            style={{
+              left: target.x * TILE + 4,
+              top: target.y * TILE + 4,
+              width: TILE - 8,
+              height: TILE - 8,
+            }}
+          />
+        )}
+
+        {/* 钓鱼浮标与上钩动效（水花圈 + 感叹号；z 高于水面与建筑） */}
+        {(fishing.phase === 'waiting' || fishing.phase === 'bite') && (
+          <div
             className="pointer-events-none absolute z-30"
-            style={{ left: (c.x + 0.5) * TILE - 3, top: c.y * TILE - 2 }}
+            style={{
+              left: fishing.spot.x * TILE + TILE / 2,
+              top: fishing.spot.y * TILE + TILE / 2,
+            }}
           >
-            {[0, 1, 2].map((k) => (
-              <span
-                key={k}
-                className="town-smoke-puff absolute block h-[6px] w-[6px] bg-[#D9D0BC]"
-                style={{ animationDelay: `${k * 1.1}s`, opacity: 0 }}
+            {fishing.phase === 'bite' && (
+              <>
+                <span className="town-splash-ring" />
+                <span className="town-bite-mark" role="img" aria-label="鱼上钩了">
+                  ❗
+                </span>
+              </>
+            )}
+            <span
+              className={`town-bobber ${fishing.phase === 'bite' ? 'town-bobber-bite' : ''}`}
+            />
+          </div>
+        )}
+
+        {/* 钓到鱼的上浮奖励动效（鱼图标 + 金币） */}
+        {fishPops.map((f) => (
+          <div
+            key={f.id}
+            className="pointer-events-none absolute z-30"
+            style={{
+              left: f.spot.x * TILE + TILE / 2,
+              top: f.spot.y * TILE,
+            }}
+          >
+            <div className="town-fish-pop flex flex-col items-center">
+              <PixelImage
+                src="/assets/ui/fish.png"
+                alt="钓到的鱼"
+                className="h-8 w-8 object-contain"
+                fallbackClassName="h-8 w-8 bg-gold"
+                fallbackText="🐟"
               />
-            ))}
+              <span className="font-pixel text-[10px] text-gold-dark">+{f.gain}</span>
+            </div>
           </div>
         ))}
 
-        {/* NPC（站在有意义的地点：房门口 / 市集 / 画室旁；待机呼吸帧动画） */}
+        {/* NPC（各站自家门口；待机呼吸帧动画） */}
         {NPC_META.map((npc) => (
           <div key={npc.id} className="pointer-events-none absolute left-0 top-0" style={entityStyle(npc.pos)}>
             <div className="flex h-full w-full items-center justify-center">

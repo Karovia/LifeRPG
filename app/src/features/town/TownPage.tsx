@@ -6,6 +6,7 @@ import { GardenPanel } from './GardenPanel'
 import { NpcDialog } from './NpcDialog'
 import { PixelImage } from './PixelImage'
 import { TownMap } from './TownMap'
+import type { CropId } from './townData'
 
 /** 天气按日轮换（确定性，纯前端氛围） */
 const WEATHERS = [
@@ -30,6 +31,8 @@ function dayPhase(date: Date): string {
 export default function TownPage() {
   const [activeNpcId, setActiveNpcId] = useState<string | null>(null)
   const [gardenOpen, setGardenOpen] = useState(false)
+  /** 当前选中的种子（家园抽屉切换，TownMap 播种时读取） */
+  const [selectedSeed, setSelectedSeed] = useState<CropId>('carrot')
   const navigate = useNavigate()
   const coins = useGameStore((s) => s.player.coins)
 
@@ -45,7 +48,11 @@ export default function TownPage() {
   return (
     <div className="relative flex-1 overflow-hidden bg-[#97A872]">
       {/* 全屏游戏场景（镜头跟随玩家，含小地图 / 云 / 炊烟 / 昼夜罩层） */}
-      <TownMap movementEnabled={!activeNpcId} onNpcClick={setActiveNpcId} />
+      <TownMap
+        movementEnabled={!activeNpcId}
+        onNpcClick={setActiveNpcId}
+        selectedSeed={selectedSeed}
+      />
 
       {/* 右上角 HUD：时段·天气徽章 / 金币 / 家园 / 离开 */}
       <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-1">
@@ -83,13 +90,19 @@ export default function TownPage() {
       {!activeNpcId && (
         <div className="pointer-events-none absolute inset-x-0 bottom-2 z-20 flex justify-center px-3">
           <div className="pixel-border-sm m-1 bg-ink/80 px-3 py-1 text-center font-pixel text-[9px] leading-4 text-parchment-light">
-            方向键 / WASD 或点击地面移动 · 点 NPC 聊天 · 点农田耕种 · 点猫咪喂食
+            方向键 / WASD 或点击地面移动 · 点 NPC 聊天 · 点农田耕种 · 点水塘/码头钓鱼 · 点猫咪喂食
           </div>
         </div>
       )}
 
       {/* 家园抽屉（右侧 overlay） */}
-      {gardenOpen && <GardenPanel onClose={() => setGardenOpen(false)} />}
+      {gardenOpen && (
+        <GardenPanel
+          onClose={() => setGardenOpen(false)}
+          selectedSeed={selectedSeed}
+          onSelectSeed={setSelectedSeed}
+        />
+      )}
 
       {/* NPC 对话条（底部滑入 overlay） */}
       {activeNpcId && (
