@@ -1,0 +1,142 @@
+/* ============================================================
+ * 魔法日记本 · 局部样式（汤姆·里德尔日记本）
+ * 仅被 @/features/diary/DiaryPage 引用
+ * ============================================================ */
+
+/* ---------- 纸面质感 ---------- */
+
+/* 泛黄羊皮纸 + 边缘磨损：多层渐变叠加 */
+.diary-paper {
+  background-color: #efe3c8;
+  background-image:
+    /* 四角与边缘的深色磨损晕影 */
+    radial-gradient(ellipse at 8% 6%, rgba(122, 94, 58, 0.22), transparent 42%),
+    radial-gradient(ellipse at 94% 4%, rgba(122, 94, 58, 0.18), transparent 38%),
+    radial-gradient(ellipse at 6% 96%, rgba(122, 94, 58, 0.2), transparent 40%),
+    radial-gradient(ellipse at 96% 94%, rgba(122, 94, 58, 0.24), transparent 44%),
+    /* 整体微微泛黄的不均匀底色 */
+    radial-gradient(ellipse at 50% 40%, rgba(255, 250, 232, 0.5), transparent 75%),
+    linear-gradient(160deg, #f3e9d0 0%, #ecdfc0 55%, #e6d6b2 100%);
+}
+
+/* 书页中缝阴影（摊开的日记本） */
+.diary-crease {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(90, 66, 40, 0.08) 46%,
+    rgba(60, 42, 24, 0.28) 50%,
+    rgba(90, 66, 40, 0.08) 54%,
+    transparent 100%
+  );
+}
+
+/* 纸张整体内阴影，营造旧书凹面感 */
+.diary-book-shadow {
+  box-shadow:
+    inset 0 0 60px rgba(107, 74, 47, 0.28),
+    inset 0 0 12px rgba(107, 74, 47, 0.18),
+    0 10px 28px rgba(59, 47, 42, 0.35);
+}
+
+/* ---------- 墨水动画 ---------- */
+
+/* 用户文字：像被纸吸走一样缓缓淡出（缓慢、优雅） */
+.diary-ink-fade-out {
+  animation: diary-ink-absorb 2.2s ease-in-out forwards;
+}
+
+@keyframes diary-ink-absorb {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  45% {
+    opacity: 0.55;
+    filter: blur(0.6px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(3px) scale(0.99);
+  }
+}
+
+/* 回复文字：逐字浮现（每个字一个 span，animationDelay 递增） */
+.diary-ink-char {
+  display: inline-block;
+  opacity: 0;
+  animation: diary-ink-emerge 0.9s ease-out forwards;
+}
+
+@keyframes diary-ink-emerge {
+  0% {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(4px);
+  }
+  60% {
+    opacity: 0.85;
+    filter: blur(0.5px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/* 回复整体隐去 */
+.diary-reply-fade-out {
+  animation: diary-reply-vanish 1.8s ease-in-out forwards;
+}
+
+@keyframes diary-reply-vanish {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+/* ---------- 羽毛笔 ---------- */
+
+.diary-quill {
+  display: inline-block;
+  animation: diary-quill-bob 2.4s ease-in-out infinite;
+  transform-origin: 80% 80%;
+}
+
+.diary-quill-writing {
+  animation: diary-quill-write 0.9s ease-in-out infinite;
+}
+
+@keyframes diary-quill-bob {
+  0%,
+  100% {
+    transform: rotate(-8deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-2deg) translateY(-3px);
+  }
+}
+
+@keyframes diary-quill-write {
+  0%,
+  100% {
+    transform: rotate(-10deg) translate(0, 0);
+  }
+  25% {
+    transform: rotate(-4deg) translate(2px, -2px);
+  }
+  50% {
+    transform: rotate(-12deg) translate(4px, 0);
+  }
+  75% {
+    transform: rotate(-5deg) translate(2px, 1px);
+  }
+}
