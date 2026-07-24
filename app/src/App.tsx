@@ -8,6 +8,7 @@ import QuestsPage from '@/features/quests/QuestsPage'
 import TownPage from '@/features/town/TownPage'
 import DiaryPage from '@/features/diary/DiaryPage'
 import ResumePage from '@/features/resume/ResumePage'
+import AdminPage from '@/features/admin/AdminPage'
 
 /** 顶栏 HUD：头像（可点击 → /avatar）、等级、XP 条、金币 */
 function Hud() {
@@ -67,6 +68,15 @@ function Hud() {
         />
         {player.coins}
       </div>
+
+      {/* 管理台入口（不显眼的小齿轮 → /admin，不进底部导航） */}
+      <Link
+        to="/admin"
+        aria-label="管理台"
+        className="pixel-press shrink-0 text-xs text-stone hover:text-ink"
+      >
+        ⚙️
+      </Link>
     </header>
   )
 }
@@ -144,6 +154,7 @@ export default function App() {
           <Route path="/town" element={<TownPage />} />
           <Route path="/diary" element={<DiaryPage />} />
           <Route path="/resume" element={<ResumePage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>
       {!immersive && <BottomNav />}

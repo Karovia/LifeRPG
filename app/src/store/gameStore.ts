@@ -7,6 +7,13 @@ import { persist } from 'zustand/middleware'
  * ============================================================
  * ⚠️ 契约文件：后续特性模块代理只能通过 hooks 读写本 store，
  *    不得修改本文件。如需扩展，先与脚手架负责人对齐。
+ *
+ * v3 新增（LLM 接入轮）：
+ *   - llmConfig（Admin 页维护的 OpenAI 兼容 LLM 配置）
+ *     各 LLM 功能（日记/拆解/NPC）读取约定：
+ *     `llmConfig.enabled && llmConfig.baseURL && llmConfig.model && llmConfig.apiKey`
+ *     任一不满足 → 必须走本地降级逻辑，不得直接发起 LLM 请求。
+ *   - adminAuthed（Admin 页登录态）
  * ============================================================
  */
 
@@ -93,6 +100,20 @@ export interface CareerIntent {
   requirements: string
 }
 
+/**
+ * LLM 接入配置（Admin 页维护）。
+ * 默认全空 + enabled=false：此时日记/任务拆解/NPC 对话一律走本地降级。
+ */
+export interface LlmConfig {
+  /** OpenAI 兼容 API 基础地址，如 https://api.openai.com/v1 */
+  baseURL: string
+  /** 模型 ID，如 gpt-4o-mini */
+  model: string
+  apiKey: string
+  /** 总开关：false 时即使填了配置也不调用 LLM */
+  enabled: boolean
+}
+
 // ---------- 小镇 slice ----------
 
 /** 小镇 NPC */
@@ -158,6 +179,9 @@ interface GameState {
   diaryEntries: DiaryEntry[]
   careerIntent: CareerIntent
   town: TownState
+  llmConfig: LlmConfig
+  /** Admin 页登录态（持久化，免每次进 /admin 重输口令） */
+  adminAuthed: boolean
 
   // ----- 玩家/成长动作 -----
   /** 增加 XP，自动处理升级（level+1，xpToNext 按 1.5 倍增长） */
@@ -195,6 +219,14 @@ interface GameState {
 
   // ----- 职业意向 -----
   setCareerIntent: (intent: Partial<CareerIntent>) => void
+
+  // ----- LLM 配置 / Admin -----
+  /** 部分更新 LLM 配置（保存时由调用方负责 trim） */
+  setLlmConfig: (config: Partial<LlmConfig>) => void
+  /** 清空 LLM 配置并关闭开关（各功能回到本地降级模式） */
+  clearLlmConfig: () => void
+  /** 设置 Admin 页登录态 */
+  setAdminAuthed: (authed: boolean) => void
 
   // ----- 小镇：NPC / 委托 -----
   /** 设置 NPC 好感度（自动钳制 0-100） */
@@ -235,6 +267,13 @@ const initialAvatarDraft: AvatarDraft = {
 const initialCareerIntent: CareerIntent = {
   targetRole: '',
   requirements: '',
+}
+
+const initialLlmConfig: LlmConfig = {
+  baseURL: '',
+  model: '',
+  apiKey: '',
+  enabled: false,
 }
 
 /** 预置小镇 NPC */
@@ -331,6 +370,8 @@ export const useGameStore = create<GameState>()(
       diaryEntries: [],
       careerIntent: initialCareerIntent,
       town: initialTown,
+      llmConfig: initialLlmConfig,
+      adminAuthed: false,
 
       addXp: (amount) =>
         set((s) => {
@@ -446,6 +487,14 @@ export const useGameStore = create<GameState>()(
       setCareerIntent: (intent) =>
         set((s) => ({ careerIntent: { ...s.careerIntent, ...intent } })),
 
+      // ----- LLM 配置 / Admin -----
+      setLlmConfig: (config) =>
+        set((s) => ({ llmConfig: { ...s.llmConfig, ...config } })),
+
+      clearLlmConfig: () => set({ llmConfig: initialLlmConfig }),
+
+      setAdminAuthed: (authed) => set({ adminAuthed: authed }),
+
       // ----- 小镇：NPC / 委托 -----
       setNpcFavorability: (npcId, favorability) =>
         set((s) => ({
@@ -557,7 +606,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'zhijian-weilai-game', // localStorage key
-      version: 2,
+      version: 3,
       migrate: (persistedState, version) => {
         // v1 → v2：补齐 todos / town，旧数据（player/quests/diary 等）保留
         const state = (persistedState ?? {}) as Partial<GameState>
@@ -579,6 +628,17 @@ export const useGameStore = create<GameState>()(
               pet: town?.garden?.pet ?? { adopted: false, name: '', hunger: 0 },
             },
           }
+        }
+        // v2 → v3：补齐 llmConfig / adminAuthed，旧数据全部保留
+        if (version < 3) {
+          const cfg = state.llmConfig as Partial<LlmConfig> | undefined
+          state.llmConfig = {
+            baseURL: typeof cfg?.baseURL === 'string' ? cfg.baseURL : '',
+            model: typeof cfg?.model === 'string' ? cfg.model : '',
+            apiKey: typeof cfg?.apiKey === 'string' ? cfg.apiKey : '',
+            enabled: cfg?.enabled === true,
+          }
+          state.adminAuthed = state.adminAuthed === true
         }
         return state as GameState
       },

@@ -3,13 +3,15 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
 import { decomposeApi } from './vite-plugins/decompose-api'
+import { llmProxy } from './vite-plugins/llm-proxy'
 
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
   // decomposeApi: 注册 POST /api/decompose 开发中间件（AI 目标拆解），
+  // llmProxy:    注册 POST /api/llm 开发中间件（通用 LLM 中转，绕开浏览器 CORS），
   // 与下方 /pixellab 代理共存，互不影响。
-  plugins: [inspectAttr(), react(), decomposeApi()],
+  plugins: [inspectAttr(), react(), decomposeApi(), llmProxy()],
   server: {
     port: 3000,
     proxy: {
