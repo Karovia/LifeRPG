@@ -4,6 +4,9 @@ import type { Player, Quest, QuestNode, TownNpc } from '@/store/gameStore'
  * ============================================================
  * 小镇模块：地图数据 / NPC 对话与好感度 mock / 委托模板
  * （纯本地确定性逻辑，不依赖 lib/ai，方便后续替换为真实 LLM）
+ *
+ * 重设计 D2：参考 peteroravec.com「整个页面即游戏世界」，
+ * 地图扩大为 24x16 可滚动世界，镜头跟随玩家。
  * ============================================================
  */
 
@@ -14,22 +17,94 @@ export interface Pos {
   y: number
 }
 
-export const MAP_COLS = 12
-export const MAP_ROWS = 8
+export const MAP_COLS = 24
+export const MAP_ROWS = 16
 
-/** 地块编码：g 草地 p 小路 f 花丛 h 房屋 t 树 F 农田 */
+/** 单格像素尺寸（世界层按绝对像素排布，供镜头平移） */
+export const TILE = 48
+export const WORLD_W = MAP_COLS * TILE
+export const WORLD_H = MAP_ROWS * TILE
+
+/** 地块编码：g 草地 p 石板路 f 花丛 h 房屋 t 树 F 农田 */
 export type TileCode = 'g' | 'p' | 'f' | 'h' | 't' | 'F'
 
-export const TOWN_MAP: TileCode[][] = [
-  ['t', 'g', 'g', 'f', 'g', 'g', 'g', 'g', 'f', 'g', 'g', 't'],
-  ['g', 'h', 'h', 'g', 'p', 'p', 'p', 'p', 'g', 'h', 'h', 'g'],
-  ['g', 'h', 'h', 'g', 'p', 'g', 'g', 'p', 'g', 'h', 'h', 'g'],
-  ['g', 'f', 'g', 'g', 'p', 'g', 'g', 'p', 'g', 'g', 'f', 'g'],
-  ['g', 'g', 'g', 'g', 'p', 'p', 'p', 'p', 'g', 'g', 'g', 'g'],
-  ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],
-  ['t', 'g', 'f', 'g', 'g', 'g', 'g', 'g', 'g', 'F', 'F', 'g'],
-  ['g', 'g', 'g', 'g', 'f', 'g', 'g', 't', 'g', 'F', 'F', 'g'],
-]
+/**
+ * 小镇布局（24x16，程序化生成避免手写错位）：
+ * - 房屋区：长者家（左上）、两间民居（北侧）、画室（右上）、玩家小屋（左下）、农舍（中下）
+ * - 石板路网：横向主路贯穿 + 多条纵向小路 + 市集广场 + 农田便道
+ * - 市集：主路北侧广场，两个货摊，商人坐镇
+ * - 农田区：右下 2x2 田块，四周便道环绕
+ * - 树木沿边缘与角落散布，花丛点缀路旁
+ */
+function buildTownMap(): TileCode[][] {
+  const g: TileCode[][] = Array.from({ length: MAP_ROWS }, () =>
+    Array<TileCode>(MAP_COLS).fill('g'),
+  )
+  const set = (x: number, y: number, c: TileCode) => {
+    if (x >= 0 && x < MAP_COLS && y >= 0 && y < MAP_ROWS) g[y][x] = c
+  }
+  const rect = (x0: number, y0: number, x1: number, y1: number, c: TileCode) => {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, c)
+  }
+
+  // ----- 石板路网 -----
+  rect(0, 8, 23, 8, 'p') // 横向主路
+  rect(3, 3, 3, 7, 'p') // 长者家门口 → 主路
+  rect(3, 9, 3, 11, 'p') // 主路 → 玩家小屋
+  rect(6, 1, 6, 7, 'p') // 北侧纵路
+  rect(17, 1, 17, 7, 'p') // 北东纵路
+  rect(20, 3, 20, 7, 'p') // 画室门口 → 主路
+  rect(10, 6, 13, 7, 'p') // 市集广场
+  rect(11, 4, 12, 5, 'p') // 广场北侧通道
+  rect(18, 9, 18, 11, 'p') // 主路 → 农田便道
+  rect(18, 11, 21, 11, 'p') // 农田北便道
+  rect(18, 14, 21, 14, 'p') // 农田南便道
+  rect(21, 12, 21, 13, 'p') // 农田东便道
+
+  // ----- 房屋区 -----
+  rect(2, 1, 4, 2, 'h') // 长者家
+  rect(8, 1, 9, 2, 'h') // 民居一
+  rect(13, 1, 15, 2, 'h') // 民居二
+  rect(19, 1, 21, 2, 'h') // 画室
+  rect(10, 5, 10, 5, 'h') // 市集货摊·左
+  rect(13, 5, 13, 5, 'h') // 市集货摊·右
+  rect(2, 12, 4, 13, 'h') // 玩家小屋
+  rect(13, 12, 14, 13, 'h') // 农舍
+
+  // ----- 树木 -----
+  ;[0, 1, 5, 7, 10, 12, 16, 18, 23].forEach((x) => set(x, 0, 't')) // 北缘
+  ;[2, 4, 6, 10, 13, 15].forEach((y) => set(0, y, 't')) // 西缘
+  ;[1, 3, 5, 7, 9, 13, 15].forEach((y) => set(23, y, 't')) // 东缘
+  ;[1, 5, 7, 9, 12, 16, 19, 22].forEach((x) => set(x, 15, 't')) // 南缘
+  // 零星树
+  set(11, 10, 't')
+  set(6, 11, 't')
+  set(16, 13, 't')
+  set(8, 13, 't')
+
+  // ----- 花丛 -----
+  ;[
+    [1, 4],
+    [5, 5],
+    [8, 6],
+    [15, 6],
+    [16, 4],
+    [22, 4],
+    [9, 10],
+    [15, 11],
+    [6, 14],
+    [10, 14],
+    [22, 10],
+    [12, 11],
+  ].forEach(([x, y]) => set(x, y, 'f'))
+
+  // ----- 农田（右下 2x2） -----
+  rect(19, 12, 20, 13, 'F')
+
+  return g
+}
+
+export const TOWN_MAP: TileCode[][] = buildTownMap()
 
 /** 地块贴图与纯色降级 */
 export const TILE_STYLE: Record<TileCode, { img: string | null; color: string }> = {
@@ -52,25 +127,39 @@ export interface NpcMeta {
   color: string
 }
 
-/** NPC 固定站位（注意：store 里画师 id 为 painter，素材文件名为 artist.png） */
+/**
+ * NPC 站位（分布在有意义的地点）：
+ * 长者 → 自家门口；商人 → 市集广场；画师 → 画室旁
+ * （注意：store 里画师 id 为 painter，素材文件名为 artist.png）
+ */
 export const NPC_META: NpcMeta[] = [
-  { id: 'elder', img: '/assets/npc/elder.png', pos: { x: 5, y: 1 }, color: '#8A6242' },
-  { id: 'merchant', img: '/assets/npc/merchant.png', pos: { x: 7, y: 3 }, color: '#9E7C33' },
-  { id: 'painter', img: '/assets/npc/artist.png', pos: { x: 3, y: 5 }, color: '#A8504B' },
+  { id: 'elder', img: '/assets/npc/elder.png', pos: { x: 4, y: 3 }, color: '#8A6242' },
+  { id: 'merchant', img: '/assets/npc/merchant.png', pos: { x: 12, y: 6 }, color: '#9E7C33' },
+  { id: 'painter', img: '/assets/npc/artist.png', pos: { x: 21, y: 3 }, color: '#A8504B' },
 ]
 
 export const NPC_POSITIONS: Pos[] = NPC_META.map((n) => n.pos)
 
 /** 农田 2x2 固定格（对应 garden.plots 数组下标） */
 export const FARM_CELLS: Pos[] = [
-  { x: 9, y: 6 },
-  { x: 10, y: 6 },
-  { x: 9, y: 7 },
-  { x: 10, y: 7 },
+  { x: 19, y: 12 },
+  { x: 20, y: 12 },
+  { x: 19, y: 13 },
+  { x: 20, y: 13 },
 ]
 
-export const PLAYER_START: Pos = { x: 5, y: 5 }
-export const PET_START: Pos = { x: 2, y: 6 }
+export const PLAYER_START: Pos = { x: 3, y: 10 }
+export const PET_START: Pos = { x: 5, y: 10 }
+
+/** 烟囱位置（炊烟动效用，取各房屋顶部中点所在的格） */
+export const CHIMNEYS: Pos[] = [
+  { x: 4, y: 1 }, // 长者家
+  { x: 9, y: 1 }, // 民居一
+  { x: 14, y: 1 }, // 民居二
+  { x: 21, y: 1 }, // 画室
+  { x: 4, y: 12 }, // 玩家小屋
+  { x: 14, y: 12 }, // 农舍
+]
 
 export function isBlocked(pos: Pos): boolean {
   if (pos.x < 0 || pos.x >= MAP_COLS || pos.y < 0 || pos.y >= MAP_ROWS) return true
