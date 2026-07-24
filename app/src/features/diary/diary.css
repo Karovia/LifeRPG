@@ -140,3 +140,37 @@
     transform: rotate(-5deg) translate(2px, 1px);
   }
 }
+
+/* ---------- LLM 等待：墨水晕开 ---------- */
+
+/* 一滴墨在纸上晕开又收回，循环呼吸（低饱和墨色，不刺眼） */
+.diary-ink-blot {
+  display: inline-block;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(59, 47, 42, 0.5) 0%,
+    rgba(59, 47, 42, 0.22) 46%,
+    transparent 72%
+  );
+  animation: diary-ink-spread 2.4s ease-in-out infinite;
+}
+
+/* 第二滴墨错峰晕开，叠出层次 */
+.diary-ink-blot-late {
+  animation-delay: 1.2s;
+}
+
+@keyframes diary-ink-spread {
+  0%,
+  100% {
+    transform: scale(0.35);
+    opacity: 0.25;
+    filter: blur(1px);
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.75;
+    filter: blur(2.5px);
+  }
+}

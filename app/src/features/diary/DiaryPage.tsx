@@ -3,6 +3,7 @@ import { PixelButton, PixelPanel } from '@/components/pixel'
 import { diaryReply } from '@/lib/ai'
 import { useGameStore } from '@/store/gameStore'
 import { cn } from '@/lib/utils'
+import { fetchLlmDiaryReply, isLlmReady } from './llm'
 import './diary.css'
 
 /**
@@ -12,10 +13,17 @@ import './diary.css'
  * 状态机：
  *   writing  —— 用户正在纸面书写
  *   fading   —— 停笔 2.5s 后，文字像墨水被吸走一样淡出（约 2.2s）
- *   waiting  —— 纸面空白，日记本"思考"中（约 1.5s）
+ *   waiting  —— 纸面空白，日记本"思考"中
+ *               · 本地降级：固定约 1.5s（✒️ 墨点）
+ *               · LLM：显示「墨水晕开…」，不设上限，响应到达才进入 replying
  *   replying —— 回复以墨水浮现效果逐字显现
  *   holding  —— 回复完整展示（约 6s）
  *   replyFading —— 回复缓缓隐去（约 1.8s），随后回到 writing
+ *
+ * 回复来源：
+ *   llmConfig 四者齐备 → POST /api/llm（90s 超时）；
+ *   任一不齐 / 非 2xx / 超时 / 网络错误 → 静默回退本地 diaryReply。
+ *   回复展示时以极小徽标区分来源（✨AI 回应 / 📜 纸灵回应）。
  * ============================================================
  */
 
@@ -26,6 +34,9 @@ type Phase =
   | 'replying'
   | 'holding'
   | 'replyFading'
+
+/** 回复来源：ai = LLM，local = 本地降级（纸灵） */
+type ReplySource = 'ai' | 'local'
 
 /** 各阶段时长（ms） */
 const IDLE_BEFORE_FADE = 2500
@@ -48,10 +59,14 @@ function todayStr(): string {
 export default function DiaryPage() {
   const diaryEntries = useGameStore((s) => s.diaryEntries)
   const addDiaryEntry = useGameStore((s) => s.addDiaryEntry)
+  const llmConfig = useGameStore((s) => s.llmConfig)
 
   const [phase, setPhase] = useState<Phase>('writing')
   const [content, setContent] = useState('')
   const [reply, setReply] = useState('')
+  const [replySource, setReplySource] = useState<ReplySource | null>(null)
+  /** 当前等待是否在为 LLM 而等（决定 waiting 阶段展示哪种动画） */
+  const [waitingForLlm, setWaitingForLlm] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   /** 纸面背景图加载失败时降级为纯 CSS 纹理 */
@@ -59,7 +74,7 @@ export default function DiaryPage() {
 
   /** 所有定时器统一登记，卸载/打断时清理 */
   const timersRef = useRef<number[]>([])
-  /** 会话序号：用户重新书写/打断后，旧定时器回调自动失效 */
+  /** 会话序号：用户重新书写/打断后，旧定时器与旧 LLM 回调自动失效 */
   const sessionRef = useRef(0)
 
   const clearTimers = useCallback(() => {
@@ -91,38 +106,33 @@ export default function DiaryPage() {
     clearTimers()
     setPhase('writing')
     setReply('')
+    setReplySource(null)
+    setWaitingForLlm(false)
     setIsTyping(false)
   }, [clearTimers])
 
-  /** 停笔后启动「吸墨 → 浮现 → 隐去」完整流程 */
-  const beginInkCycle = useCallback(
-    (text: string) => {
-      setIsTyping(false)
-      setPhase('fading')
+  /** 回复就绪：逐字浮现 → 展示 → 隐去 → 落库已在进入前完成 */
+  const revealReply = useCallback(
+    (replyText: string, source: ReplySource, text: string) => {
+      setReply(replyText)
+      setReplySource(source)
+      setWaitingForLlm(false)
+      setPhase('replying')
+      // 持久化本次书写
+      addDiaryEntry({ date: todayStr(), content: text, reply: replyText })
 
-      // 1) 文字被纸面吸走
-      later(FADE_DURATION, () => setPhase('waiting'))
-
-      // 2) 停顿后，日记本落笔回复
-      later(FADE_DURATION + WAIT_BEFORE_REPLY, () => {
-        const replyText = diaryReply(text)
-        setReply(replyText)
-        setPhase('replying')
-        // 持久化本次书写
-        addDiaryEntry({ date: todayStr(), content: text, reply: replyText })
-
-        const revealMs = replyText.length * CHAR_STAGGER + CHAR_ANIM
-        // 3) 回复完整显现后进入展示
-        later(revealMs, () => {
-          setPhase('holding')
-          // 4) 展示后缓缓隐去
-          later(REPLY_HOLD, () => {
-            setPhase('replyFading')
-            later(REPLY_FADE, () => {
-              setContent('')
-              setReply('')
-              setPhase('writing')
-            })
+      const revealMs = replyText.length * CHAR_STAGGER + CHAR_ANIM
+      // 回复完整显现后进入展示
+      later(revealMs, () => {
+        setPhase('holding')
+        // 展示后缓缓隐去
+        later(REPLY_HOLD, () => {
+          setPhase('replyFading')
+          later(REPLY_FADE, () => {
+            setContent('')
+            setReply('')
+            setReplySource(null)
+            setPhase('writing')
           })
         })
       })
@@ -130,14 +140,65 @@ export default function DiaryPage() {
     [later, addDiaryEntry],
   )
 
+  /** 停笔后启动「吸墨 → 等待 → 浮现 → 隐去」完整流程 */
+  const beginInkCycle = useCallback(
+    (text: string) => {
+      setIsTyping(false)
+      setPhase('fading')
+
+      // ---------- LLM 路径：配置齐备才启用，失败静默降级 ----------
+      if (isLlmReady(llmConfig)) {
+        const session = sessionRef.current
+        const start = Date.now()
+        setWaitingForLlm(true)
+
+        // 1) 文字被纸面吸走后进入等待（墨水晕开…，不设上限）
+        later(FADE_DURATION, () => setPhase('waiting'))
+
+        // 2) 与吸墨并行发起 LLM 请求；响应到达（或降级就绪）才进入浮现
+        fetchLlmDiaryReply(text, llmConfig)
+          .then(
+            (t): { text: string; source: ReplySource } => ({
+              text: t,
+              source: 'ai',
+            }),
+          )
+          .catch(
+            (): { text: string; source: ReplySource } => ({
+              text: diaryReply(text),
+              source: 'local',
+            }),
+          )
+          .then((result) => {
+            if (sessionRef.current !== session) return
+            // 吸墨尚未放完则补足剩余时长，保证视觉节奏不被快响应打断
+            const remain = Math.max(0, FADE_DURATION - (Date.now() - start))
+            later(remain, () => revealReply(result.text, result.source, text))
+          })
+        return
+      }
+
+      // ---------- 本地降级路径：节奏与原版一致 ----------
+      // 1) 文字被纸面吸走
+      later(FADE_DURATION, () => setPhase('waiting'))
+
+      // 2) 停顿后，日记本落笔回复
+      later(FADE_DURATION + WAIT_BEFORE_REPLY, () => {
+        revealReply(diaryReply(text), 'local', text)
+      })
+    },
+    [later, llmConfig, revealReply],
+  )
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     setContent(value)
     setIsTyping(true)
-    // 重新输入：作废旧流程，重新计时
+    // 重新输入：作废旧流程（含在途 LLM 响应），重新计时
     sessionRef.current += 1
     clearTimers()
     setPhase('writing')
+    setWaitingForLlm(false)
     if (value.trim()) {
       later(IDLE_BEFORE_FADE, () => beginInkCycle(value))
     } else {
@@ -193,6 +254,21 @@ export default function DiaryPage() {
             — {todayStr()} —
           </p>
 
+          {/* 回复来源徽标（极小，不阻断交互） */}
+          {replySource &&
+            (phase === 'replying' ||
+              phase === 'holding' ||
+              phase === 'replyFading') && (
+              <span
+                className={cn(
+                  'pointer-events-none absolute right-3 top-3 font-pixel text-[8px] tracking-wider',
+                  replySource === 'ai' ? 'text-gold-dark' : 'text-stone-dark',
+                )}
+              >
+                {replySource === 'ai' ? '✨ AI 回应' : '📜 纸灵回应'}
+              </span>
+            )}
+
           {/* 书写态：纸面 textarea */}
           {phase === 'writing' && (
             <textarea
@@ -219,12 +295,23 @@ export default function DiaryPage() {
             </p>
           )}
 
-          {/* 等待态：纸面空白，仅余墨点 */}
-          {phase === 'waiting' && (
-            <p className="text-center text-sm text-stone-dark">
-              <span className="animate-caret-blink">✒️</span>
-            </p>
-          )}
+          {/* 等待态：LLM=墨水晕开（无上限）；本地=仅余墨点 */}
+          {phase === 'waiting' &&
+            (waitingForLlm ? (
+              <div className="flex flex-col items-center gap-4 pt-12">
+                <div className="relative h-16 w-16" aria-hidden>
+                  <span className="diary-ink-blot absolute inset-0" />
+                  <span className="diary-ink-blot diary-ink-blot-late absolute inset-2" />
+                </div>
+                <p className="font-pixel text-[10px] tracking-wider text-stone-dark">
+                  墨水晕开<span className="animate-caret-blink">…</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-center text-sm text-stone-dark">
+                <span className="animate-caret-blink">✒️</span>
+              </p>
+            ))}
 
           {/* 回复态：逐字浮现 / 展示 / 隐去 */}
           {(phase === 'replying' || phase === 'holding') && (
