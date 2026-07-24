@@ -2,6 +2,7 @@ import { PixelButton, PixelPanel, PixelProgressBar } from '@/components/pixel'
 import { useGameStore } from '@/store/gameStore'
 import { useEffect, useRef, useState } from 'react'
 import { PixelImage } from './PixelImage'
+import { fetchNpcReply, isLlmReady } from './llmChat'
 import {
   NPC_META,
   buildCommission,
@@ -35,6 +36,7 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
   const addCommission = useGameStore((s) => s.addCommission)
   const updateCommissionStatus = useGameStore((s) => s.updateCommissionStatus)
   const addCoins = useGameStore((s) => s.addCoins)
+  const llmConfig = useGameStore((s) => s.llmConfig)
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => [
     { from: 'npc', text: npcGreeting(npcId) },
@@ -42,6 +44,8 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
   const [input, setInput] = useState('')
   const [report, setReport] = useState('')
   const [reportHint, setReportHint] = useState<string | null>(null)
+  /** LLM 思考中：禁用输入，展示「对方正在想…」动画 */
+  const [thinking, setThinking] = useState(false)
 
   const lastInputRef = useRef<string | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
@@ -54,27 +58,51 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
 
   if (!npc) return null
 
+  const llmReady = isLlmReady(llmConfig)
   const npcImg = NPC_META.find((n) => n.id === npcId)?.img ?? ''
   const npcCommissions = commissions.filter((c) => c.npcId === npcId)
   const activeCommission = npcCommissions.find((c) => c.status !== 'done')
   const doneCommissions = npcCommissions.filter((c) => c.status === 'done')
 
-  const send = () => {
+  const send = async () => {
     const text = input.trim()
-    if (!text) return
+    if (!text || thinking) return
+    // 好感度启发式评分：只看玩家输入本身，与回复来源（LLM/本地池）无关
     const { delta, dismissive } = scoreMessage(text, npcId, lastInputRef.current)
     lastInputRef.current = text
-    const reply = npcReply(npcId, text, dismissive)
-    const next: ChatMsg[] = [
-      { from: 'me', text },
+    const history: ChatMsg[] = messages.filter((m) => m.from !== 'sys')
+    setMessages((m) => [...m, { from: 'me', text }])
+    setInput('')
+
+    let reply: string
+    if (llmReady) {
+      setThinking(true)
+      try {
+        reply = await fetchNpcReply({
+          llmConfig,
+          npc,
+          history: history as { from: 'npc' | 'me'; text: string }[],
+          playerMessage: text,
+          favorability: npc.favorability,
+        })
+      } catch {
+        // LLM 失败 / 超时：静默回退本地回复池
+        reply = npcReply(npcId, text, dismissive)
+      } finally {
+        setThinking(false)
+      }
+    } else {
+      reply = npcReply(npcId, text, dismissive)
+    }
+
+    setMessages((m) => [
+      ...m,
       { from: 'npc', text: reply },
       ...(delta > 0
         ? [{ from: 'sys' as const, text: `好感度 +${delta}` }]
         : []),
-    ]
-    setMessages((m) => [...m, ...next])
+    ])
     if (delta > 0) setNpcFavorability(npcId, npc.favorability + delta)
-    setInput('')
   }
 
   const offerCommission = () => {
@@ -116,6 +144,16 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
           to { transform: translateY(0); }
         }
         .town-dialog-in { animation: town-dialog-in 0.28s steps(7, end) both; }
+        @keyframes town-thinking-dots {
+          0% { content: '·'; }
+          33% { content: '··'; }
+          66% { content: '···'; }
+        }
+        .town-thinking::after {
+          content: '·';
+          display: inline-block;
+          animation: town-thinking-dots 0.9s steps(1, end) infinite;
+        }
       `}</style>
 
       <PixelPanel className="town-dialog-in flex max-h-[52dvh] flex-col gap-2 overflow-y-auto">
@@ -131,7 +169,13 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-pixel text-xs text-ink">{npc.name}</div>
+            <div className="flex items-center gap-1">
+              <div className="font-pixel text-xs text-ink">{npc.name}</div>
+              {/* 回复来源徽标：极小字，提示当前是 AI 对话还是本地回复池 */}
+              <span className="pixel-border-sm m-[2px] bg-parchment-light px-1 font-pixel text-[8px] leading-3 text-stone-dark">
+                {llmReady ? '✨AI 对话' : '🏘️ 小镇闲话'}
+              </span>
+            </div>
             <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-stone-dark">
               {npc.personality}
             </p>
@@ -174,6 +218,13 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
               </div>
             ),
           )}
+          {thinking && (
+            <div className="mb-1 flex justify-start">
+              <div className="pixel-border-sm m-[3px] max-w-[80%] bg-parchment-light px-2 py-1 text-[11px] leading-4 text-stone-dark">
+                <span className="town-thinking">对方正在想</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 输入行 */}
@@ -184,10 +235,11 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') send()
             }}
-            placeholder="认真聊聊才会提升好感度……"
-            className="pixel-border-sm m-1 min-w-0 flex-1 bg-parchment-light px-2 py-1 text-[11px] text-ink placeholder:text-stone"
+            disabled={thinking}
+            placeholder={thinking ? '对方正在想……' : '认真聊聊才会提升好感度……'}
+            className="pixel-border-sm m-1 min-w-0 flex-1 bg-parchment-light px-2 py-1 text-[11px] text-ink placeholder:text-stone disabled:opacity-60"
           />
-          <PixelButton variant="moss" onClick={send}>
+          <PixelButton variant="moss" onClick={send} disabled={thinking}>
             发送
           </PixelButton>
         </div>
