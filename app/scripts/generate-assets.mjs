@@ -125,6 +125,138 @@ const ASSETS = [
     prompt:
       'a cute sitting ginger cat, 8-bit retro pixel art pet, warm palette',
   },
+  // ---------------- 第二轮：导航图标 48x48 ----------------
+  {
+    key: 'nav/home',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a tiny cozy house icon with a warm berry-red roof, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'nav/quests',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a rolled parchment quest scroll tied with a red ribbon, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'nav/town',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a tiny stone castle town icon with battlements and a wooden gate, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'nav/diary',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a closed diary book with a berry-red cover and a ribbon bookmark, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'nav/resume',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a parchment resume sheet with a feather quill pen, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple',
+  },
+  // ---------------- 第二轮：小镇地块 64x64 俯视 ----------------
+  {
+    key: 'tiles/grass',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a top-down grass ground tile patch, soft moss green, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/path',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a top-down cobblestone path tile, warm beige stones, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/flower',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a top-down bush of small warm red and golden flowers with green leaves, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/house',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a small cozy pixel house with a warm berry-red roof and wooden door, 8-bit retro pixel art RPG building, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/tree',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a round moss green pixel tree with a wooden trunk, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
+  },
+  // ---------------- 第二轮：NPC 立绘 64x64 正面 ----------------
+  {
+    key: 'npc/elder',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'pixel art game character, a kind old elder with a long white beard wearing a berry-red robe, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'npc/merchant',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'pixel art game character, a friendly merchant wearing a brown wide-brim hat and moss green apron with a gold coin pouch, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'npc/artist',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'pixel art game character, a cheerful artist wearing a berry-red beret and a parchment apron holding a paint brush, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
+  },
+  // ---------------- 第二轮：作物阶段 48x48 ----------------
+  {
+    key: 'crop/seed',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a few small golden seeds on a mound of warm brown soil, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'crop/sprout',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a small green sprout seedling growing from warm brown soil, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'crop/ripe',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a ripe orange carrot with green leaves, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple',
+  },
 ]
 
 /** 从 app/.env 解析 VITE_PIXELLAB_API_KEY（不打印内容） */

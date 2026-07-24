@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-24T12:36:09.698Z",
+  "generatedAt": "2026-07-24T13:29:34.219Z",
   "generator": "app/scripts/generate-assets.mjs",
   "assets": {
     "decor/trophy": {
@@ -111,6 +111,166 @@
       ],
       "transparent": true,
       "prompt": "a standing floor lamp with a warm glowing lampshade, 8-bit retro pixel art home decoration, warm palette"
+    },
+    "nav/home": {
+      "path": "/assets/nav/home.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a tiny cozy house icon with a warm berry-red roof, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple"
+    },
+    "nav/quests": {
+      "path": "/assets/nav/quests.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a rolled parchment quest scroll tied with a red ribbon, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple"
+    },
+    "nav/town": {
+      "path": "/assets/nav/town.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a tiny stone castle town icon with battlements and a wooden gate, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple"
+    },
+    "nav/diary": {
+      "path": "/assets/nav/diary.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a closed diary book with a berry-red cover and a ribbon bookmark, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple"
+    },
+    "nav/resume": {
+      "path": "/assets/nav/resume.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a parchment resume sheet with a feather quill pen, 8-bit retro pixel art game UI icon, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/grass": {
+      "path": "/assets/tiles/grass.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a top-down grass ground tile patch, soft moss green, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/path": {
+      "path": "/assets/tiles/path.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a top-down cobblestone path tile, warm beige stones, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/flower": {
+      "path": "/assets/tiles/flower.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a top-down bush of small warm red and golden flowers with green leaves, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/house": {
+      "path": "/assets/tiles/house.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a small cozy pixel house with a warm berry-red roof and wooden door, 8-bit retro pixel art RPG building, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/tree": {
+      "path": "/assets/tiles/tree.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a round moss green pixel tree with a wooden trunk, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
+    },
+    "npc/elder": {
+      "path": "/assets/npc/elder.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "pixel art game character, a kind old elder with a long white beard wearing a berry-red robe, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
+    },
+    "npc/merchant": {
+      "path": "/assets/npc/merchant.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "pixel art game character, a friendly merchant wearing a brown wide-brim hat and moss green apron with a gold coin pouch, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
+    },
+    "npc/artist": {
+      "path": "/assets/npc/artist.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "pixel art game character, a cheerful artist wearing a berry-red beret and a parchment apron holding a paint brush, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
+    },
+    "crop/seed": {
+      "path": "/assets/crop/seed.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a few small golden seeds on a mound of warm brown soil, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple"
+    },
+    "crop/sprout": {
+      "path": "/assets/crop/sprout.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a small green sprout seedling growing from warm brown soil, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple"
+    },
+    "crop/ripe": {
+      "path": "/assets/crop/ripe.png",
+      "source": "pixellab",
+      "size": [
+        48,
+        48
+      ],
+      "transparent": true,
+      "prompt": "a ripe orange carrot with green leaves, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple"
     }
   }
 }
