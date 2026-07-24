@@ -171,17 +171,17 @@ const ASSETS = [
     key: 'tiles/grass',
     width: 64,
     height: 64,
-    noBackground: true,
+    noBackground: false,
     prompt:
-      'a top-down grass ground tile patch, soft moss green, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
+      'a hand-painted top-down grass ground tile, soft moss green with small grass tufts and subtle dappled shading, richly detailed, full-bleed seamless, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'tiles/path',
     width: 64,
     height: 64,
-    noBackground: true,
+    noBackground: false,
     prompt:
-      'a top-down cobblestone path tile, warm beige stones, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
+      'a hand-painted top-down cobblestone path tile, rounded warm beige stones with soft shadows between them, richly detailed, full-bleed seamless, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'tiles/flower',
@@ -189,7 +189,7 @@ const ASSETS = [
     height: 64,
     noBackground: true,
     prompt:
-      'a top-down bush of small warm red and golden flowers with green leaves, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
+      'a lush hand-painted bush of small warm red and golden flowers with layered green leaves and tiny highlights, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'tiles/house',
@@ -197,7 +197,7 @@ const ASSETS = [
     height: 64,
     noBackground: true,
     prompt:
-      'a small cozy pixel house with a warm berry-red roof and wooden door, 8-bit retro pixel art RPG building, warm low-saturation palette, no blue or purple',
+      'a cute cozy hand-painted pixel cottage, warm berry-red gabled roof with shading, wooden door with a knob, glowing windows with cross panes, a small chimney, 8-bit retro pixel art RPG building, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'tiles/tree',
@@ -205,7 +205,39 @@ const ASSETS = [
     height: 64,
     noBackground: true,
     prompt:
-      'a round moss green pixel tree with a wooden trunk, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
+      'a plump round moss green pixel tree with a full layered canopy, soft top-left highlights, a few tiny red berries, wooden trunk, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/water',
+    width: 64,
+    height: 64,
+    noBackground: false,
+    prompt:
+      'a hand-painted top-down water surface tile, only calm water filling the entire canvas, muted sage green-teal water with soft cream ripple highlights, no rocks, no border, no grass, full-bleed seamless, 8-bit retro pixel art RPG map tile, warm low-saturation palette, strictly no purple no magenta no saturated blue',
+  },
+  {
+    key: 'tiles/fence',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a cute hand-painted wooden fence with two horizontal rails and two posts, warm brown wood with soft shading, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/lamp',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a cute hand-painted village street lamp, dark wooden post with a warm golden glowing lantern on top, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/field',
+    width: 64,
+    height: 64,
+    noBackground: false,
+    prompt:
+      'a hand-painted top-down farmland tile, tilled warm brown soil with neat parallel ridges and a few tiny green weeds, full-bleed seamless, 8-bit retro pixel art RPG farming map tile, warm low-saturation palette, no blue or purple',
   },
   // ---------------- 第二轮：NPC 立绘 64x64 正面 ----------------
   {
@@ -214,7 +246,7 @@ const ASSETS = [
     height: 64,
     noBackground: true,
     prompt:
-      'pixel art game character, a kind old elder with a long white beard wearing a berry-red robe, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
+      'hand-painted pixel art game character, a kind old elder with a long white beard wearing a berry-red robe with subtle folds and shading, warm gentle smile, front view, detailed 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'npc/merchant',
@@ -222,7 +254,7 @@ const ASSETS = [
     height: 64,
     noBackground: true,
     prompt:
-      'pixel art game character, a friendly merchant wearing a brown wide-brim hat and moss green apron with a gold coin pouch, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
+      'hand-painted pixel art game character, a friendly merchant wearing a brown wide-brim hat and moss green apron with a gold coin pouch, warm smile, soft shading, front view, detailed 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'npc/artist',
@@ -230,7 +262,7 @@ const ASSETS = [
     height: 64,
     noBackground: true,
     prompt:
-      'pixel art game character, a cheerful artist wearing a berry-red beret and a parchment apron holding a paint brush, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
+      'hand-painted pixel art game character, a cheerful artist wearing a berry-red beret and a parchment apron holding a paint brush, warm smile, soft shading, front view, detailed 8-bit retro RPG style, warm low-saturation palette, no blue or purple',
   },
   // ---------------- 第二轮：作物阶段 48x48 ----------------
   {

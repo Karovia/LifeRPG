@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-24T13:29:34.219Z",
+  "generatedAt": "2026-07-24T15:22:04.294Z",
   "generator": "app/scripts/generate-assets.mjs",
   "assets": {
     "decor/trophy": {
@@ -169,8 +169,8 @@
         64,
         64
       ],
-      "transparent": true,
-      "prompt": "a top-down grass ground tile patch, soft moss green, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple"
+      "transparent": false,
+      "prompt": "a hand-painted top-down grass ground tile, soft moss green with small grass tufts and subtle dappled shading, richly detailed, full-bleed seamless, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple"
     },
     "tiles/path": {
       "path": "/assets/tiles/path.png",
@@ -179,8 +179,8 @@
         64,
         64
       ],
-      "transparent": true,
-      "prompt": "a top-down cobblestone path tile, warm beige stones, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple"
+      "transparent": false,
+      "prompt": "a hand-painted top-down cobblestone path tile, rounded warm beige stones with soft shadows between them, richly detailed, full-bleed seamless, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple"
     },
     "tiles/flower": {
       "path": "/assets/tiles/flower.png",
@@ -190,7 +190,7 @@
         64
       ],
       "transparent": true,
-      "prompt": "a top-down bush of small warm red and golden flowers with green leaves, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
+      "prompt": "a lush hand-painted bush of small warm red and golden flowers with layered green leaves and tiny highlights, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
     },
     "tiles/house": {
       "path": "/assets/tiles/house.png",
@@ -200,7 +200,7 @@
         64
       ],
       "transparent": true,
-      "prompt": "a small cozy pixel house with a warm berry-red roof and wooden door, 8-bit retro pixel art RPG building, warm low-saturation palette, no blue or purple"
+      "prompt": "a cute cozy hand-painted pixel cottage, warm berry-red gabled roof with shading, wooden door with a knob, glowing windows with cross panes, a small chimney, 8-bit retro pixel art RPG building, warm low-saturation palette, no blue or purple"
     },
     "tiles/tree": {
       "path": "/assets/tiles/tree.png",
@@ -210,7 +210,7 @@
         64
       ],
       "transparent": true,
-      "prompt": "a round moss green pixel tree with a wooden trunk, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
+      "prompt": "a plump round moss green pixel tree with a full layered canopy, soft top-left highlights, a few tiny red berries, wooden trunk, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
     },
     "npc/elder": {
       "path": "/assets/npc/elder.png",
@@ -220,7 +220,7 @@
         64
       ],
       "transparent": true,
-      "prompt": "pixel art game character, a kind old elder with a long white beard wearing a berry-red robe, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
+      "prompt": "hand-painted pixel art game character, a kind old elder with a long white beard wearing a berry-red robe with subtle folds and shading, warm gentle smile, front view, detailed 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
     },
     "npc/merchant": {
       "path": "/assets/npc/merchant.png",
@@ -230,7 +230,7 @@
         64
       ],
       "transparent": true,
-      "prompt": "pixel art game character, a friendly merchant wearing a brown wide-brim hat and moss green apron with a gold coin pouch, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
+      "prompt": "hand-painted pixel art game character, a friendly merchant wearing a brown wide-brim hat and moss green apron with a gold coin pouch, warm smile, soft shading, front view, detailed 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
     },
     "npc/artist": {
       "path": "/assets/npc/artist.png",
@@ -240,7 +240,7 @@
         64
       ],
       "transparent": true,
-      "prompt": "pixel art game character, a cheerful artist wearing a berry-red beret and a parchment apron holding a paint brush, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
+      "prompt": "hand-painted pixel art game character, a cheerful artist wearing a berry-red beret and a parchment apron holding a paint brush, warm smile, soft shading, front view, detailed 8-bit retro RPG style, warm low-saturation palette, no blue or purple"
     },
     "crop/seed": {
       "path": "/assets/crop/seed.png",
@@ -271,6 +271,147 @@
       ],
       "transparent": true,
       "prompt": "a ripe orange carrot with green leaves, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/water": {
+      "path": "/assets/tiles/water.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": false,
+      "prompt": "8-bit pixel art game map tile, flat calm water surface only, muted sage green water, soft cream ripple lines, top-down, edge-to-edge, no rocks/plants/border, warm low-saturation palette, strictly no purple no magenta",
+      "postProcess": "ripple touch-up via PIL (fallback-assets palette)"
+    },
+    "tiles/fence": {
+      "path": "/assets/tiles/fence.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a cute hand-painted wooden fence with two horizontal rails and two posts, warm brown wood with soft shading, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/lamp": {
+      "path": "/assets/tiles/lamp.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": true,
+      "prompt": "a cute hand-painted village street lamp, dark wooden post with a warm golden glowing lantern on top, 8-bit retro pixel art RPG map decoration, warm low-saturation palette, no blue or purple"
+    },
+    "tiles/field": {
+      "path": "/assets/tiles/field.png",
+      "source": "pixellab",
+      "size": [
+        64,
+        64
+      ],
+      "transparent": false,
+      "prompt": "a hand-painted top-down farmland tile, tilled warm brown soil with neat parallel ridges and a few tiny green weeds, full-bleed seamless, 8-bit retro pixel art RPG farming map tile, warm low-saturation palette, no blue or purple"
+    },
+    "anim/cat-walk": {
+      "path": "/assets/anim/cat-walk/",
+      "frames": [
+        "/assets/anim/cat-walk/frame-0.png",
+        "/assets/anim/cat-walk/frame-1.png",
+        "/assets/anim/cat-walk/frame-2.png",
+        "/assets/anim/cat-walk/frame-3.png"
+      ],
+      "frameCount": 4,
+      "size": [
+        64,
+        64
+      ],
+      "loop": true,
+      "source": "pixellab",
+      "fallback": false,
+      "prompt": "a cute ginger cat, 8-bit retro pixel art pet, warm low-saturation palette, no blue or purple",
+      "action": "walking loop, four-legged walk cycle, subtle bobbing, side view",
+      "reference": "/assets/decor/cat.png"
+    },
+    "anim/water": {
+      "path": "/assets/anim/water/",
+      "frames": [
+        "/assets/anim/water/frame-0.png",
+        "/assets/anim/water/frame-1.png",
+        "/assets/anim/water/frame-2.png",
+        "/assets/anim/water/frame-3.png"
+      ],
+      "frameCount": 4,
+      "size": [
+        64,
+        64
+      ],
+      "loop": true,
+      "source": "pixellab",
+      "fallback": false,
+      "prompt": "a hand-painted top-down water surface, only calm water, muted sage green-teal with soft cream ripple highlights, no rocks, no border, 8-bit retro pixel art, warm low-saturation palette, strictly no purple no magenta no saturated blue",
+      "action": "gentle water ripples looping, calm pond surface shimmer",
+      "reference": "/assets/tiles/water.png"
+    },
+    "anim/elder-idle": {
+      "path": "/assets/anim/elder-idle/",
+      "frames": [
+        "/assets/anim/elder-idle/frame-0.png",
+        "/assets/anim/elder-idle/frame-1.png",
+        "/assets/anim/elder-idle/frame-2.png",
+        "/assets/anim/elder-idle/frame-3.png"
+      ],
+      "frameCount": 4,
+      "size": [
+        64,
+        64
+      ],
+      "loop": true,
+      "source": "pixellab",
+      "fallback": false,
+      "prompt": "pixel art game character, a kind old elder with a long white beard wearing a berry-red robe, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple",
+      "action": "idle breathing loop, gentle vertical sway, front view, subtle motion",
+      "reference": "/assets/npc/elder.png"
+    },
+    "anim/merchant-idle": {
+      "path": "/assets/anim/merchant-idle/",
+      "frames": [
+        "/assets/anim/merchant-idle/frame-0.png",
+        "/assets/anim/merchant-idle/frame-1.png",
+        "/assets/anim/merchant-idle/frame-2.png",
+        "/assets/anim/merchant-idle/frame-3.png"
+      ],
+      "frameCount": 4,
+      "size": [
+        64,
+        64
+      ],
+      "loop": true,
+      "source": "pixellab",
+      "fallback": false,
+      "prompt": "pixel art game character, a friendly merchant wearing a brown wide-brim hat and moss green apron, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple",
+      "action": "idle breathing loop, gentle vertical sway, front view, subtle motion",
+      "reference": "/assets/npc/merchant.png"
+    },
+    "anim/artist-idle": {
+      "path": "/assets/anim/artist-idle/",
+      "frames": [
+        "/assets/anim/artist-idle/frame-0.png",
+        "/assets/anim/artist-idle/frame-1.png",
+        "/assets/anim/artist-idle/frame-2.png",
+        "/assets/anim/artist-idle/frame-3.png"
+      ],
+      "frameCount": 4,
+      "size": [
+        64,
+        64
+      ],
+      "loop": true,
+      "source": "pixellab",
+      "fallback": false,
+      "prompt": "pixel art game character, a cheerful artist wearing a berry-red beret and a parchment apron holding a paint brush, front view, 8-bit retro RPG style, warm low-saturation palette, no blue or purple",
+      "action": "idle breathing loop, gentle vertical sway, front view, subtle motion",
+      "reference": "/assets/npc/artist.png"
     }
   }
 }
