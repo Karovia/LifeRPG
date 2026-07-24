@@ -28,14 +28,15 @@ npm run dev
 
 | 模块 | 路由 | 说明 |
 | --- | --- | --- |
-| 形象创建 | `/avatar` | 三步向导（起名 → 描述 → Pixellab 生成确认），支持重新生成 |
-| 职业目标 | `/quests` | 目标拆解为节点树，逐级解锁，完成发放 XP/金币奖励弹窗 |
-| 成长中心 | `/growth` | 成长概览、装饰品商店、家园预览、奖励规则告示牌 |
+| 首页 | `/` | 成长数据总览、今日目标、阶段 Deadline 提醒、ToDo 快速清单 |
+| 成就树 | `/quests` | 目标 → 多阶段成就树（节点带 phase/deadline），逐级解锁；`POST /api/decompose` 开发中间件提供 AI 拆解：DuckDuckGo 联网检索 + 规则引擎，断网自动降级 rules-only，预留 LLM 接入点（`app/vite-plugins/decompose-api.ts`） |
+| 小镇养成 | `/town` | 俯视角像素小镇：角色移动、NPC 对话好感度、委托任务、家园种植、宠物喂养 |
+| 形象创建 | `/avatar` | 三步向导（起名 → 描述 → Pixellab 生成确认），支持重新生成；HUD 头像可点击直达 |
 | 魔法日记 | `/diary` | 汤姆·里德尔式日记本：文字吸入纸面、回复浮现，支持历史旧页 |
 | 简历生成 | `/resume` | 意向设置 → AI 生成 → 卷轴展示，支持复制/导出与信息差告示牌 |
 
-全局状态使用 zustand + persist 持久化到 localStorage（key：`zhijian-weilai-game`），新用户打开会自动进入形象创建引导。
+底部导航为 5 项像素图标（首页/任务/小镇/日记/简历），「形象」入口移至顶栏头像。全局状态使用 zustand + persist 持久化到 localStorage（key：`zhijian-weilai-game`，v2 结构含 todos/town，自动迁移旧数据），新用户打开会自动进入形象创建引导。
 
 ## 素材
 
-`app/public/assets/` 下 11 张像素素材全部由 Pixellab 实际生成（金币、宝箱、XP 星、羊皮纸、小镇背景、占位头像、5 件家园装饰品），清单见 `app/public/assets/manifest.json`（含每张图的 prompt、尺寸与来源）。重新生成脚本：`app/scripts/generate-assets.mjs`。
+`app/public/assets/` 下像素素材全部由 Pixellab 实际生成：第一轮 11 张（金币、宝箱、XP 星、羊皮纸、小镇背景、占位头像、5 件家园装饰品），第二轮新增 17 张（5 张导航图标、小镇地块、3 个 NPC、作物等）。清单见 `app/public/assets/manifest.json`（含每张图的 prompt、尺寸与来源）。重新生成脚本：`app/scripts/generate-assets.mjs`。

@@ -36,3 +36,21 @@ init-webapp.sh 初始化 `app/` → git init → 设计基础（像素字体/调
 ## 交付
 
 预览链接 `[职见未来](http://localhost:7100/)`，项目根 `/Users/apple/Documents/Kimi/Workspaces/职见未来/app`。
+
+---
+
+# 第二轮迭代（2026-07-24 晚）
+
+需求：导航换像素图标｜任务拆解→成就树+AI联网搜索拆解+阶段Deadline｜导航去掉「形象」（改点头像）｜新增首页（今日目标+ToDo+Deadline+成长数据）｜成长页→俯视角小镇养成（NPC好感/委托/种植/宠物）｜每部分独立 commit。
+
+- Stage 1（并行2代理）：契约改造（store 扩容 + 路由导航重构 + Home/Town 占位）∥ 素材补充（导航图标/地块/NPC/作物）
+- Stage 2（并行3代理）：首页（features/home）∥ 成就树+AI拆解（features/quests + vite 中间件联网搜索）∥ 小镇养成（features/town）
+- Stage 3：集成验收（build + 冒烟 + README）✅ 已完成（2026-07-24）
+- 已知限制：无 LLM key，「AI拆解」= vite dev 中间件真实联网搜索（DuckDuckGo 免 key）+ 增强规则引擎，接口预留 LLM 接入点
+
+## 第二轮验收结果（✅ 通过）
+
+- 5 个 commit 全部在案（c28f309 core / bd4e4de assets / 81d9263 home / fa3bfd2 quests / d4f6f4a town），`npm run build` 一次通过
+- 路由 /、/quests、/town、/diary、/resume、/avatar 全部 200；导航素材 /assets/nav/*.png 200；NPC id（painter→artist.png）映射有显式注释对齐
+- `/api/decompose` 冒烟：HTTP 200，返回 5 阶段 13 节点（带 phase/deadline/anchorDate）；本机无外网时按设计降级 rules-only（非报错）
+- 遗留：DuckDuckGo 联网检索需在有外网环境再验证一次（本环境 HTTP 000，仅验证了降级路径）
