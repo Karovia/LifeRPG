@@ -102,7 +102,8 @@ export interface CareerIntent {
 
 /**
  * LLM 接入配置（Admin 页维护）。
- * 默认全空 + enabled=false：此时日记/任务拆解/NPC 对话一律走本地降级。
+ * 默认值从 .env 的 VITE_LLM_* 读取（缺省空串）：三项齐备时 enabled 默认 true，
+ * 用户开箱即用；未配置 env 时全空 + enabled=false，日记/任务拆解/NPC 对话走本地降级。
  */
 export interface LlmConfig {
   /** OpenAI 兼容 API 基础地址，如 https://api.openai.com/v1 */
@@ -269,11 +270,25 @@ const initialCareerIntent: CareerIntent = {
   requirements: '',
 }
 
-const initialLlmConfig: LlmConfig = {
+/** .env 注入的 LLM 默认配置（构建期内联，缺省为空串） */
+const envLlmBaseURL = (import.meta.env.VITE_LLM_BASE_URL ?? '') as string
+const envLlmModel = (import.meta.env.VITE_LLM_MODEL ?? '') as string
+const envLlmApiKey = (import.meta.env.VITE_LLM_API_KEY ?? '') as string
+
+/** 全空配置：Admin 页「清空」时使用，回到本地降级模式 */
+const emptyLlmConfig: LlmConfig = {
   baseURL: '',
   model: '',
   apiKey: '',
   enabled: false,
+}
+
+const initialLlmConfig: LlmConfig = {
+  baseURL: envLlmBaseURL,
+  model: envLlmModel,
+  apiKey: envLlmApiKey,
+  // 仅当三项都非空时默认开启，开箱即用
+  enabled: Boolean(envLlmBaseURL && envLlmModel && envLlmApiKey),
 }
 
 /** 预置小镇 NPC */
@@ -491,7 +506,7 @@ export const useGameStore = create<GameState>()(
       setLlmConfig: (config) =>
         set((s) => ({ llmConfig: { ...s.llmConfig, ...config } })),
 
-      clearLlmConfig: () => set({ llmConfig: initialLlmConfig }),
+      clearLlmConfig: () => set({ llmConfig: emptyLlmConfig }),
 
       setAdminAuthed: (authed) => set({ adminAuthed: authed }),
 
@@ -606,7 +621,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'zhijian-weilai-game', // localStorage key
-      version: 3,
+      version: 4,
       migrate: (persistedState, version) => {
         // v1 → v2：补齐 todos / town，旧数据（player/quests/diary 等）保留
         const state = (persistedState ?? {}) as Partial<GameState>
@@ -639,6 +654,24 @@ export const useGameStore = create<GameState>()(
             enabled: cfg?.enabled === true,
           }
           state.adminAuthed = state.adminAuthed === true
+        }
+        // v3 → v4：内置 .env 默认 LLM 配置。
+        //   旧数据 llmConfig 字段为空时用 env 默认补齐；用户已手填过的不覆盖。
+        if (version < 4) {
+          const cfg = state.llmConfig as Partial<LlmConfig> | undefined
+          const userFilled = Boolean(cfg?.baseURL || cfg?.model || cfg?.apiKey)
+          if (!userFilled) {
+            // 从未手填：直接套用 env 内置默认（enabled 随三项齐备与否）
+            state.llmConfig = { ...initialLlmConfig }
+          } else {
+            // 已手填：仅补齐仍为空的字段，enabled 尊重用户原值
+            state.llmConfig = {
+              baseURL: cfg?.baseURL || initialLlmConfig.baseURL,
+              model: cfg?.model || initialLlmConfig.model,
+              apiKey: cfg?.apiKey || initialLlmConfig.apiKey,
+              enabled: cfg?.enabled === true,
+            }
+          }
         }
         return state as GameState
       },

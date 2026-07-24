@@ -28,7 +28,8 @@ npm run dev
 
 `/admin` 为登录保护的管理台（账号 `Karovia` / 密码 `173256`），**不进底部导航**，经顶栏 HUD 右侧 ⚙️ 进入。功能：
 
-- 维护 OpenAI 兼容 LLM 配置（baseURL / apiKey / modelID / enabled 开关），持久化在本地 store（v3 结构含 `llmConfig` / `adminAuthed`，自动迁移旧数据）
+- 维护 OpenAI 兼容 LLM 配置（baseURL / apiKey / modelID / enabled 开关），持久化在本地 store（v4 结构含 `llmConfig` / `adminAuthed`，自动迁移旧数据）
+- **已内置阶跃星辰 step-3.5-flash 默认配置**（`app/.env` 的 `VITE_LLM_*` 三项，仓库内为 `.env.example` 占位）：开箱即用无需手填，可在 /admin 覆盖，「清空」回到本地降级
 - 「测试连接」：经 `POST /api/llm` 代理发一条 ping（maxTokens=8），展示上游真实响应或错误详情
 
 LLM 调用统一走 OpenAI 兼容协议（`POST {baseURL}/chat/completions`，Bearer apiKey），三个板块：

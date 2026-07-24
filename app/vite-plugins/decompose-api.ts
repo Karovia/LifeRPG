@@ -218,7 +218,9 @@ async function callChatCompletions(
       model: llm.model,
       messages,
       temperature: 0.5,
-      max_tokens: 2000,
+      // 推理型模型（如 step-3.5-flash）会先消耗大量 reasoning token 再输出 content，
+      // 2000 会被推理耗尽导致 content 为空/截断，给到 8000 保证 JSON 成就树完整输出
+      max_tokens: 8000,
     }
     if (jsonMode) upstreamBody.response_format = { type: 'json_object' }
     const res = await fetch(`${baseURL}/chat/completions`, {
