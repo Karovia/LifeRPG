@@ -97,7 +97,8 @@ export async function fetchNpcReply({
           { role: 'user', content: playerMessage },
         ],
         temperature: 0.85,
-        maxTokens: 200,
+        // 推理模型（如 step-3.5-flash）会先消耗 reasoning token，额度太小会导致 content 为空
+        maxTokens: 1536,
       }),
       signal: controller.signal,
     })

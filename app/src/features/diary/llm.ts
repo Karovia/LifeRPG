@@ -51,7 +51,8 @@ export async function fetchLlmDiaryReply(
           { role: 'user', content },
         ],
         temperature: 0.8,
-        maxTokens: 300,
+        // 推理模型（如 step-3.5-flash）会先消耗 reasoning token，额度太小会导致 content 为空
+        maxTokens: 2048,
       }),
       signal: controller.signal,
     })

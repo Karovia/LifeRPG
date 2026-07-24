@@ -184,7 +184,8 @@ function ConfigForm() {
           apiKey: form.apiKey.trim(),
           model: form.model.trim(),
           messages: [{ role: 'user', content: 'ping' }],
-          maxTokens: 8,
+          // 推理模型需预留 reasoning token，太小会拿不到 content
+          maxTokens: 512,
         }),
       })
       const text = await res.text()
