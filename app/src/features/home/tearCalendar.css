@@ -1,0 +1,60 @@
+/* ============================================================
+   撕日历轮播动画（首页 · 阶段 Deadline 区）
+   手撕日历：顶部悬挂 → 向下翻折 → 带着阴影飞走
+   ============================================================ */
+
+/* 3D 透视场景 */
+.tear-scene {
+  perspective: 800px;
+}
+
+/* 被撕掉的日历页：以顶边为轴翻折、下坠、淡出 */
+.tear-leaving {
+  transform-origin: 50% 0%;
+  animation: tear-off 0.7s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+  will-change: transform, opacity, filter;
+  z-index: 10;
+}
+
+@keyframes tear-off {
+  0% {
+    transform: rotateX(0deg) translateY(0) rotate(0deg);
+    opacity: 1;
+    filter: drop-shadow(0 2px 0 rgba(59, 47, 42, 0.25));
+  }
+  25% {
+    /* 先被指尖往下拽出一道折痕 */
+    transform: rotateX(-18deg) translateY(2px) rotate(0.5deg);
+    opacity: 1;
+    filter: drop-shadow(0 6px 4px rgba(59, 47, 42, 0.3));
+  }
+  60% {
+    /* 撕离挂环，开始下坠 */
+    transform: rotateX(-55deg) translateY(26%) rotate(-2deg);
+    opacity: 0.9;
+    filter: drop-shadow(0 14px 8px rgba(59, 47, 42, 0.35));
+  }
+  100% {
+    /* 翻折飞走，留下阴影层次 */
+    transform: rotateX(-75deg) translateY(70%) rotate(-5deg);
+    opacity: 0;
+    filter: drop-shadow(0 24px 12px rgba(59, 47, 42, 0.4));
+  }
+}
+
+/* 撕纸残边：日历头部下方的锯齿条，模拟上一页撕剩的纸茬 */
+.tear-stub {
+  height: 6px;
+  clip-path: polygon(
+    0% 0%, 4% 100%, 9% 20%, 14% 90%, 20% 10%, 26% 100%, 32% 25%,
+    38% 85%, 45% 15%, 52% 100%, 58% 20%, 65% 90%, 72% 10%, 79% 95%,
+    86% 25%, 93% 85%, 100% 0%
+  );
+}
+
+/* 尊重系统的减弱动态偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .tear-leaving {
+    animation-duration: 0.01s;
+  }
+}

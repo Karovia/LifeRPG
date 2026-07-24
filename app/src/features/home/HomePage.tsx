@@ -12,6 +12,7 @@ import {
   sortTodosForHome,
   todoDueInfo,
 } from './homeUtils'
+import { TearCalendar } from './TearCalendar'
 
 /** 像素图标：图片缺失时降级为 emoji */
 function IconImg({
@@ -215,41 +216,7 @@ function PhaseDeadlineSection() {
           </Link>
         </div>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {groups.map((g) => {
-            const info = getDeadlineInfo(g.deadline)
-            const allDone = g.total > 0 && g.done === g.total
-            return (
-              <div
-                key={g.key}
-                className="pixel-border-sm w-36 shrink-0 bg-parchment-light px-3 py-2"
-              >
-                <p className="truncate font-pixel text-[10px] text-ink">
-                  {g.name}
-                </p>
-                {!g.fromQuest && (
-                  <p className="mt-1 truncate font-pixel text-[8px] text-stone-dark">
-                    「{g.questTitle}」
-                  </p>
-                )}
-                <p className="mt-1 font-pixel text-[8px] text-moss-dark">
-                  {g.done}/{g.total} {allDone ? '✓' : ''}
-                </p>
-                <p
-                  className={`mt-1 font-pixel text-[8px] ${
-                    info
-                      ? info.overdue && !allDone
-                        ? 'text-berry'
-                        : 'text-wood-dark'
-                      : 'text-stone'
-                  }`}
-                >
-                  {info ? info.label : '无期限'}
-                </p>
-              </div>
-            )
-          })}
-        </div>
+        <TearCalendar groups={groups} />
       )}
     </PixelPanel>
   )
