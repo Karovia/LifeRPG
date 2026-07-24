@@ -35,7 +35,7 @@ const MAX_ATTEMPTS = 2 // 首次 + 重试 1 次
 // 鉴权/余额类错误：继续重试无意义，直接全部降级
 const FATAL_STATUSES = new Set([401, 402, 403])
 
-/** @type {Array<{key:string, width:number, height:number, noBackground:boolean, prompt:string}>} */
+/** @type {Array<{key:string, width:number, height:number, noBackground:boolean, prompt:string, postProcess?:string}>} */
 const ASSETS = [
   {
     key: 'ui/coin',
@@ -172,16 +172,18 @@ const ASSETS = [
     width: 64,
     height: 64,
     noBackground: false,
+    postProcess: '生成图带暗角时：采样调色板经 PIL 程序化环绕重建无缝地面 (scripts/seamless-tiles.py)',
     prompt:
-      'a hand-painted top-down grass ground tile, soft moss green with small grass tufts and subtle dappled shading, richly detailed, full-bleed seamless, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
+      'an extremely subtle top-down grass ground tile, almost flat uniform muted moss green, only very sparse faint low-contrast pixel speckles, no large patterns, no flowers, no shapes, no direction, flat uniform lighting, no vignette, no darker edges, uniform brightness all the way to the edges, minimal detail, edge-to-edge seamless tileable, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'tiles/path',
     width: 64,
     height: 64,
     noBackground: false,
+    postProcess: '生成带苔藓绿底时：改用全局暖色调色板经 PIL 程序化无缝重建 (scripts/seamless-tiles.py)',
     prompt:
-      'a hand-painted top-down cobblestone path tile, rounded warm beige stones with soft shadows between them, richly detailed, full-bleed seamless, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
+      'a top-down cobblestone path tile, small rounded warm beige stones on warm sand, evenly distributed all the way to the edges of the canvas, uniform density, low contrast, no grass, no moss, no leaves, no border, no vignette, flat uniform lighting, no large centerpiece, edge-to-edge seamless tileable, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
   },
   {
     key: 'tiles/flower',
@@ -236,8 +238,9 @@ const ASSETS = [
     width: 64,
     height: 64,
     noBackground: false,
+    postProcess: 'seamless edge-blend + detail reduction via PIL (scripts/seamless-tiles.py)',
     prompt:
-      'a hand-painted top-down farmland tile, tilled warm brown soil with neat parallel ridges and a few tiny green weeds, full-bleed seamless, 8-bit retro pixel art RPG farming map tile, warm low-saturation palette, no blue or purple',
+      'a top-down farmland soil tile, tilled warm brown earth with thin subtle parallel ridges evenly spaced across the whole canvas, uniform low detail, no plants, no border, edge-to-edge seamless tileable, 8-bit retro pixel art RPG farming map tile, warm low-saturation palette, no blue or purple',
   },
   // ---------------- 第二轮：NPC 立绘 64x64 正面 ----------------
   {
@@ -288,6 +291,88 @@ const ASSETS = [
     noBackground: true,
     prompt:
       'a ripe orange carrot with green leaves, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple',
+  },
+  // ---------------- 第三轮：草地变体 + 多格建筑 + 钓鱼/作物 ----------------
+  {
+    key: 'tiles/grass2',
+    width: 64,
+    height: 64,
+    noBackground: false,
+    postProcess: '沿用 grass 采样调色板经 PIL 程序化环绕重建并加野花点缀 (scripts/seamless-tiles.py)',
+    prompt:
+      'a top-down grass ground tile, almost flat uniform muted moss green base, with only two or three tiny sparse wildflower dots and small grass tufts, mostly empty plain grass, minimal detail, no large patterns, flat uniform lighting, no vignette, no radial shading, uniform brightness all the way to the edges, edge-to-edge seamless tileable, 8-bit retro pixel art RPG map tile, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'buildings/house-red',
+    width: 128,
+    height: 128,
+    noBackground: true,
+    prompt:
+      'a cute cozy pixel cottage seen from the front, warm berry-red gabled roof, cream parchment walls, wooden door centered at the bottom, two glowing windows with cross panes, a small chimney, base at the bottom edge, centered, 8-bit retro pixel art RPG building sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'buildings/house-wood',
+    width: 128,
+    height: 128,
+    noBackground: true,
+    prompt:
+      'a pixel art wooden general store seen from the front, warm brown timber walls, dark wooden gabled roof, a small hanging wooden shop sign above the door, a display window with goods, base at the bottom edge, centered, 8-bit retro RPG building sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'buildings/house-tall',
+    width: 128,
+    height: 192,
+    noBackground: true,
+    prompt:
+      'a tall two-story pixel art studio tower seen from the front, narrow cozy house with a warm berry-red pointed roof, cream walls, wooden door at the bottom, stacked glowing windows on both floors, a small attic window, base at the bottom edge, centered, 8-bit retro RPG building sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'buildings/well',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a small pixel art stone water well, round stone base with a little wooden gabled roof on two posts and a hanging bucket, centered, 8-bit retro RPG village decoration sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/tree-big',
+    width: 64,
+    height: 128,
+    noBackground: true,
+    prompt:
+      'a big tall pixel art tree, full round layered moss green canopy filling the upper two thirds, a short sturdy warm brown wooden trunk at the bottom, a few tiny warm red berries, centered, 8-bit retro RPG map sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'tiles/dock',
+    width: 64,
+    height: 64,
+    noBackground: true,
+    prompt:
+      'a small wooden fishing dock platform, warm brown planks with visible gaps and two short support posts, compact square platform viewed from above at a slight angle, centered, 8-bit retro RPG map sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'ui/fish',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a small cute pixel fish, warm orange-gold body with soft shading, simple tail fin and one eye, side view, 8-bit retro pixel art game reward icon, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'crop/pumpkin-ripe',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a ripe round orange pumpkin with a green stem sitting on a small mound of warm brown soil, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple',
+  },
+  {
+    key: 'crop/wheat-ripe',
+    width: 48,
+    height: 48,
+    noBackground: true,
+    prompt:
+      'a small bundle of ripe golden wheat stalks with grain heads growing from a mound of warm brown soil, 8-bit retro pixel art farming game sprite, warm low-saturation palette, no blue or purple',
   },
 ]
 
@@ -476,6 +561,7 @@ async function main() {
             size: [a.width, a.height],
             transparent: a.noBackground,
             prompt: a.prompt,
+            ...(a.postProcess ? { postProcess: a.postProcess } : {}),
           },
         ]),
       ),

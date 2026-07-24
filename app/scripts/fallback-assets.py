@@ -61,6 +61,8 @@ MOSS_LIGHT = (158, 182, 120, 255)   # 树冠高光
 WATER = (110, 152, 156, 255)        # 低饱和暖青水面
 WATER_DARK = (84, 122, 128, 255)
 WATER_LIGHT = (150, 184, 182, 255)
+STONE_DARK = (118, 112, 102, 255)   # 石缝阴影
+FIELD_LIGHT = (198, 132, 96, 255)   # 田垄高光
 
 # ------------------------------------------------------------
 # 16x16 像素画定义：'.' = 透明，其余字符查各自 palette
@@ -362,49 +364,9 @@ PIXEL_ART: dict[str, tuple[dict[str, tuple[int, int, int, int]], list[str]]] = {
         ],
     ),
     # ---------------- 第二轮：小镇地块（俯视） ----------------
-    # ---------------- 小镇地块（升级版：满幅地面 + 细节装饰） ----------------
-    "tiles/grass": (
-        {"G": GRASS, "g": GRASS_DARK, "T": MOSS_DARK, "t": MOSS},
-        [
-            "GGgGGGGgGGGGgGGG",
-            "gGGGGGGGGGGGGGGg",
-            "GGGGtTGGGGgGGGGG",
-            "GGGGTtTGGTtTGGGG",
-            "GgGGtTGGGGTtTGgG",
-            "GGGGGGGGGGtTGGGG",
-            "GGTtTGGgGGGGGGGG",
-            "gGtTGGGGGGgGtTGg",
-            "GGGGGGtTGGGGTtGG",
-            "GGGgGTtTGGGgGGGG",
-            "GGGGGGGGGGGGGGgG",
-            "gGGgGGgGTtTGGGGG",
-            "GGGGGGGGtTGGGgGG",
-            "GGTtGGgGGGGGTtTG",
-            "GGtTGGGGgGGGtTGG",
-            "GGGGGgGGGGGGGGgG",
-        ],
-    ),
-    "tiles/path": (
-        {"P": PATH, "S": STONE, "s": PARCHMENT_DARK, "L": PARCHMENT_LIGHT},
-        [
-            "PPPPPPPPPPPPPPPP",
-            "PssPPPssPPPssPPs",
-            "PSLSPPSLSPPSLSPP",
-            "PSSsPPSSsPPSSsPP",
-            "PssPPPssPPPssPPP",
-            "PPPPsPPPPPsPPPss",
-            "PPPSLSPPPSLSPPSL",
-            "PPPSSsPPPSSsPPPS",
-            "PPPssPPPPssPPPPs",
-            "PPPPPPssPPPPPPPP",
-            "sPPPsLSPPPsLSPPs",
-            "SLSPPSSsPPSSsPPP",
-            "SSsPPssPPPssPPPs",
-            "PPPPPPPPsPPPPPPs",
-            "PssPPsLSPPPsLSPP",
-            "PSLSPPSSsPPPSSsP",
-        ],
-    ),
+    # 注：tiles/grass、tiles/grass2、tiles/path、tiles/field 已改为
+    # 程序化无缝生成（见 SEAMLESS_GROUND / render_seamless_ground），
+    # 目标是低细节、横竖拼接不显眼。
     "tiles/water": (
         {"W": WATER, "w": WATER_DARK, "L": WATER_LIGHT},
         [
@@ -530,27 +492,6 @@ PIXEL_ART: dict[str, tuple[dict[str, tuple[int, int, int, int]], list[str]]] = {
             ".....KKDKK......",
             "....KKDDDKK.....",
             "................",
-        ],
-    ),
-    "tiles/field": (
-        {"D": WOOD_DARK, "T": TERRACOTTA_DARK, "R": TERRACOTTA, "L": PARCHMENT_DARK, "G": MOSS},
-        [
-            "DDDDDDDDDDDDDDDD",
-            "DLDDDDLDDDDDLDDD",
-            "DDDDDDDDDDDDDDDD",
-            "TTTTTTTTTTTTTTTT",
-            "RRRRRRRRRRRRRRRR",
-            "DDDDDDDDDDDDDDDD",
-            "DDDDDLDDDDDLDDDD",
-            "DDDDDDDGDDDDDDDD",
-            "TTTTTTTTTTTTTTTT",
-            "RRRRRRRRRRRRRRRR",
-            "DDDDDDDDDDDDDDDD",
-            "DDLDDDDDLDDDDDDD",
-            "DDDDDDDDDDGDDDDD",
-            "TTTTTTTTTTTTTTTT",
-            "RRRRRRRRRRRRRRRR",
-            "DDDDDDDDDDDDDDDD",
         ],
     ),
     # ---------------- 第二轮：NPC 立绘（正面） ----------------
@@ -681,6 +622,279 @@ PIXEL_ART: dict[str, tuple[dict[str, tuple[int, int, int, int]], list[str]]] = {
             "........O.......",
         ],
     ),
+    # ---------------- 第三轮：多格建筑精灵（32x32→128 / 32x48→128x192） ----------------
+    "buildings/house-red": (
+        {"K": INK, "B": BERRY, "b": BERRY_DARK, "P": PARCHMENT, "p": PARCHMENT_DARK,
+         "W": GOLD_LIGHT, "D": WOOD_DARK, "S": STONE, "Y": GOLD},
+        [
+            "................................",
+            ".......................KSK......",
+            ".......................KSK......",
+            ".......................KSK......",
+            "..............KKKK.....KSK......",
+            ".............KBBBBK....KSK......",
+            "............KBBBBBBK...KSK......",
+            "...........KBBBBBBBbK..KSK......",
+            "..........KBBBBBBBBbK.KSK.......",
+            ".........KBBBBBBBBBbbKKSK.......",
+            "........KBBBBBBBBBBBBBBbbK......",
+            ".......KBBBBBBBBBBBBBBBbbbK.....",
+            "......KBBBBBBBBBBBBBBBBBbbbK....",
+            ".....KBBBBBBBBBBBBBBBBBBbbbbK...",
+            "....KKKKKKKKKKKKKKKKKKKKKKKKKK..",
+            "......KPPPPPPPPPPPPPPPPPPK......",
+            "......KPPPPPPPPPPPPPPPPPPK......",
+            "......KPKWWKPPPPPPPPKWWKPK......",
+            "......KPKWWKPPPPPPPPKWWKPK......",
+            "......KPKKKKPPKKKKPPKKKKPK......",
+            "......KPPPPPPPKDDKPPPPPPPK......",
+            "......KPPPPPPPKDDKPPPPPPPK......",
+            "......KPPPPPPPKDDKPPPPPPPK......",
+            "......KPPPPPPPKDYKPPPPPPPK......",
+            "......KPPPPPPPKDDKPPPPPPPK......",
+            "......KPPPPPPPKDDKPPPPPPPK......",
+            "......KPPPPPPPKDDKPPPPPPPK......",
+            "......KPPPPPPPKDDKPPPPPPPK......",
+            "......KSSSSSSSSSSSSSSSSSSK......",
+            "......KKKKKKKKKKKKKKKKKKKK......",
+            "................................",
+            "................................",
+        ],
+    ),
+    "buildings/house-wood": (
+        {"K": INK, "W": WOOD, "D": WOOD_DARK, "P": PARCHMENT, "Y": GOLD, "L": GOLD_LIGHT},
+        [
+            "................................",
+            "................................",
+            "................................",
+            "...............KK...............",
+            "..............KDDK..............",
+            ".............KDDDDK.............",
+            "............KDDDDDDK............",
+            "...........KDDDDDDDDK...........",
+            "..........KDDDDDDDDDDK..........",
+            ".........KDDDDDDDDDDDDK.........",
+            ".....KKKKKKKKKKKKKKKKKKKKKKK....",
+            ".......KWDWDWDWDWDWDWDWDWK......",
+            ".......KWDWDWKKKKKKKWDWDWK......",
+            ".......KWDWDWKPPPPPKWDWDWK......",
+            ".......KWDWDWKPYPYPKWDWDWK......",
+            ".......KWDWDWKKKKKKKWDWDWK......",
+            ".......KKLLKWDWDWDWDKLLKWK......",
+            ".......KKLLKWDWDWDWDKLLKWK......",
+            ".......KKLLKWDWDWDWDKLLKWK......",
+            ".......KKKKKWDWDWDWDKKKKWK......",
+            ".......KWDWDWDWKKKKDWDWDWK......",
+            ".......KWDWDWDWKDDKDWDWDWK......",
+            ".......KWDWDWDWKDDKDWDWDWK......",
+            ".......KWDWDWDWKDDKDWDWDWK......",
+            ".......KWDWDWDWKDYKDWDWDWK......",
+            ".......KWDWDWDWKDDKDWDWDWK......",
+            ".......KWDWDWDWKDDKDWDWDWK......",
+            ".......KWDWDWDWKDDKDWDWDWK......",
+            ".......KKKKKKKKKKKKKKKKKKK......",
+            "................................",
+            "................................",
+            "................................",
+        ],
+    ),
+    "buildings/house-tall": (
+        {"K": INK, "B": BERRY, "b": BERRY_DARK, "P": PARCHMENT, "W": GOLD_LIGHT,
+         "D": WOOD_DARK, "S": STONE, "Y": GOLD},
+        [
+            "................................",
+            "...............KK...............",
+            "..............KBBK..............",
+            "..............KBBK..............",
+            ".............KBBBBK.............",
+            ".............KBBBbK.............",
+            "............KBBBBBbK............",
+            "............KBBBBBbK............",
+            "...........KBBBBBBBbK...........",
+            "...........KBBBBBBBbK...........",
+            "..........KBBBBBBBBBbK..........",
+            "..........KBBBBBBBBBbK..........",
+            ".........KBBBBBBBBBBBbK.........",
+            "........KKKKKKKKKKKKKKKK........",
+            ".........KPPPPPPPPPPPPK.........",
+            ".........KPPPPKWWKPPPPK.........",
+            ".........KPPPPKWWKPPPPK.........",
+            ".........KPPPPKKKKPPPPK.........",
+            ".........KPPPPPPPPPPPPK.........",
+            ".........KPKWKPPPPKWKPK.........",
+            ".........KPKWKPPPPKWKPK.........",
+            ".........KPKWKPPPPKWKPK.........",
+            ".........KPKKKPPPPKKKPK.........",
+            ".........KPPPPPPPPPPPPK.........",
+            ".........KPPPPPPPPPPPPK.........",
+            "........KKKKKKKKKKKKKKKK........",
+            ".........KPPPPPPPPPPPPK.........",
+            ".........KPKKKPPPPPPPPK.........",
+            ".........KPKWKPPPPPPPPK.........",
+            ".........KPKKKPPPPPPPPK.........",
+            ".........KPPPPPPPPPPPPK.........",
+            ".........KPPPPPKKKKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDYKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPPKDDKPPPK.........",
+            ".........KPPPPSSSSSSPPK.........",
+            ".........KSSSSSSSSSSSSK.........",
+            ".........KKKKKKKKKKKKKK.........",
+            "................................",
+            "................................",
+            "................................",
+        ],
+    ),
+    "buildings/well": (
+        {"K": INK, "B": BERRY, "D": WOOD_DARK, "W": WOOD, "S": STONE, "s": STONE_DARK},
+        [
+            "................",
+            ".....KKKKKK.....",
+            "....KBBBBBBK....",
+            "...KBBBBBBBBK...",
+            "..KKKKKKKKKKKK..",
+            "....KD....KD....",
+            "....KD.WW.KD....",
+            "....KD.WW.KD....",
+            "....KKKKKKKK....",
+            "..KSSSSSSSSSSK..",
+            "..KSSsSSSSsSSK..",
+            "..KSsSSSSSSsSK..",
+            "..KSSSsSSsSSSK..",
+            "..KKKKKKKKKKKK..",
+            "................",
+            "................",
+        ],
+    ),
+    "tiles/tree-big": (
+        {"G": MOSS, "g": MOSS_DARK, "L": MOSS_LIGHT, "R": BERRY, "W": WOOD, "D": WOOD_DARK},
+        [
+            "................",
+            ".....GGGGGG.....",
+            "...GGGLLGGGGG...",
+            "..GGLLGGGGGGGg..",
+            "..GLGGGGGGGGGGg.",
+            ".GGLGGGGgGGGGGGg",
+            ".GGGGGGGGGgGGGGg",
+            "GGGGGgGGGGGGGGGG",
+            "GGGGGGGGGRGGGGGg",
+            "GgGGGGgGGGGGGGGG",
+            "GGGgGGGGGGGGgGGG",
+            "GGGGGGGRGGGGGGGg",
+            "gGGGGgGGGGgGGGGG",
+            "GGGGGGGGGGGGGgGg",
+            "GgGgGGGGgGGGGGGg",
+            "GGGGGGGGGRGGGGGg",
+            ".GGGGgGGGGGGGGG.",
+            ".GgGGGGGGgGGgGg.",
+            "..GGGGGgGGGGGg..",
+            "...GgGGGGGGGg...",
+            "....GgGgGGgG....",
+            "......DWWWD.....",
+            "......DWWWD.....",
+            "......DWWWD.....",
+            "......DWWWD.....",
+            "......DWWWD.....",
+            "......DWWWD.....",
+            "......DWWWD.....",
+            "......DWWWD.....",
+            ".....DDWWWDD....",
+            ".....DDDDDDD....",
+            "................",
+        ],
+    ),
+    # ---------------- 第三轮：钓鱼与作物 ----------------
+    "tiles/dock": (
+        {"K": INK, "W": WOOD, "D": WOOD_DARK},
+        [
+            "................",
+            ".KKKKKKKKKKKKKK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KDDDDDDDDDDDDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KDDDDDDDDDDDDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KWWWDWWWDWWWDK.",
+            ".KKKKKKKKKKKKKK.",
+            "..KDK......KDK..",
+            "..KDK......KDK..",
+        ],
+    ),
+    "ui/fish": (
+        {"K": INK, "O": GINGER, "L": GOLD_LIGHT, "D": GINGER_DARK},
+        [
+            "................",
+            "................",
+            ".....KKK........",
+            "...KKOOOK...KK..",
+            "..KOOLOOOK.KOOK.",
+            ".KOOLOOOOOKOOOK.",
+            ".KOLOOOOOOOOKK..",
+            "KOKOOOOOOOOOKK..",
+            "KOOOOOOOOOOOOK..",
+            ".KOOOOOOOOOOK...",
+            "..KOOOOOOOOOK...",
+            "...KOOOOOOK.....",
+            "....KKKKK.......",
+            "................",
+            "................",
+            "................",
+        ],
+    ),
+    "crop/pumpkin-ripe": (
+        {"K": INK, "O": GINGER, "D": GINGER_DARK, "G": MOSS, "g": MOSS_DARK, "T": WOOD_DARK},
+        [
+            "................",
+            ".......G........",
+            "......Gg........",
+            "......GG.G......",
+            "....KKKKKKK.....",
+            "..KKOOOOOOKK....",
+            ".KOODOOOODOOK...",
+            ".KODOOOOOODOK...",
+            "KOODOOOOOODOOK..",
+            "KODOOOOOOOODOK..",
+            "KOODOOOOOODOOK..",
+            ".KODOOOOOODOK...",
+            ".KOODOOOODOOK...",
+            "..KKOOOOOOKK....",
+            "...TTTTTTTTT....",
+            "....TTTTTTT.....",
+        ],
+    ),
+    "crop/wheat-ripe": (
+        {"Y": GOLD, "L": GOLD_LIGHT, "T": WOOD_DARK},
+        [
+            "..Y...Y...Y.....",
+            ".YYY.YYY.YYY....",
+            ".YLY.YLY.YLY....",
+            ".YYY.YYY.YYY....",
+            "..Y...Y...Y.....",
+            "..Y..YYY..Y.....",
+            "..Y...Y...Y.....",
+            "..Y...Y...Y.....",
+            "..YY..Y..YY.....",
+            "...Y..Y..Y......",
+            "...Y..Y..Y......",
+            "...Y..Y..Y......",
+            "....Y.Y.Y.......",
+            "....Y.Y.Y.......",
+            "...TTTTTTTTT....",
+            "....TTTTTTT.....",
+        ],
+    ),
 }
 
 # 生成尺寸（不含 parchment/town，二者单独程序化绘制）
@@ -714,6 +928,17 @@ ITEM_SIZES: dict[str, tuple[int, int]] = {
     "crop/seed": (48, 48),
     "crop/sprout": (48, 48),
     "crop/ripe": (48, 48),
+    # ---------------- 第三轮：草地变体 + 多格建筑 + 钓鱼/作物 ----------------
+    "tiles/grass2": (64, 64),
+    "buildings/house-red": (128, 128),
+    "buildings/house-wood": (128, 128),
+    "buildings/house-tall": (128, 192),
+    "buildings/well": (64, 64),
+    "tiles/tree-big": (64, 128),
+    "tiles/dock": (64, 64),
+    "ui/fish": (48, 48),
+    "crop/pumpkin-ripe": (48, 48),
+    "crop/wheat-ripe": (48, 48),
 }
 
 ANIM_KEYS = [
@@ -835,6 +1060,86 @@ def render_town(out_path: Path, size: tuple[int, int] = (320, 320)) -> None:
     img.save(out_path)
 
 
+# ------------------------------------------------------------
+# 第三轮：程序化无缝地面（低细节，横竖拼接不显眼）
+# 所有绘制通过 _plot_wrap 环绕取模，保证左右/上下边缘严格连续。
+# ------------------------------------------------------------
+SEAMLESS_GROUND = {"tiles/grass", "tiles/grass2", "tiles/path", "tiles/field"}
+
+
+def _plot_wrap(px, w: int, h: int, x: int, y: int, color) -> None:
+    px[x % w, y % h] = color
+
+
+def render_seamless_ground(key: str, out_path: Path, size: tuple[int, int]) -> None:
+    w, h = size
+    rng = random.Random(f"zjwl-{key}-20260725")
+    if key in ("tiles/grass", "tiles/grass2"):
+        img = Image.new("RGB", size, GRASS[:3])
+        px = img.load()
+        # 极淡双色噪点（低对比、无方向性），环绕绘制保证无缝
+        for _ in range(w * h // 9):
+            x, y = rng.randint(0, w - 1), rng.randint(0, h - 1)
+            col = GRASS_DARK[:3] if rng.random() < 0.55 else MOSS_LIGHT[:3]
+            _plot_wrap(px, w, h, x, y, col)
+        # 零星 2px 小草簇
+        for _ in range(w * h // 90):
+            x, y = rng.randint(0, w - 1), rng.randint(0, h - 1)
+            _plot_wrap(px, w, h, x, y, MOSS_DARK[:3])
+            _plot_wrap(px, w, h, x + 1, y, GRASS_DARK[:3])
+        if key == "tiles/grass2":
+            # 点缀变体：两三朵小野花 + 两簇草叶（打破满图重复感用）
+            for _ in range(3):
+                x, y = rng.randint(0, w - 1), rng.randint(0, h - 1)
+                petal = BERRY[:3] if rng.random() < 0.6 else GOLD[:3]
+                _plot_wrap(px, w, h, x, y, petal)
+                _plot_wrap(px, w, h, x, y + 1, MOSS_DARK[:3])
+            for _ in range(2):
+                x, y = rng.randint(0, w - 1), rng.randint(0, h - 1)
+                for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1)):
+                    _plot_wrap(px, w, h, x + dx, y + dy, MOSS[:3])
+    elif key == "tiles/path":
+        img = Image.new("RGB", size, PATH[:3])
+        px = img.load()
+        # 鹅卵石：抖动网格均匀排布到边缘，石块环绕绘制（跨边石块两边都出现）
+        step = 8
+        for gy in range(-step, h + step, step):
+            for gx in range(-step, w + step, step):
+                cx = gx + rng.randint(-1, 1) + 3
+                cy = gy + rng.randint(-1, 1) + 3
+                for dx in range(3):
+                    for dy in range(3):
+                        if (dx, dy) in ((0, 0), (2, 0), (0, 2), (2, 2)):
+                            continue  # 圆角
+                        col = STONE[:3] if rng.random() < 0.8 else PARCHMENT_DARK[:3]
+                        _plot_wrap(px, w, h, cx + dx - 1, cy + dy - 1, col)
+                _plot_wrap(px, w, h, cx, cy - 1, PARCHMENT_LIGHT[:3])  # 顶部高光
+    elif key == "tiles/field":
+        img = Image.new("RGB", size, TERRACOTTA[:3])
+        px = img.load()
+        # 垄沟：每 8px 一条 2px 暗沟 + 1px 亮脊，周期整除 64 → 纵向天然无缝
+        for y in range(h):
+            band = y % 8
+            if band in (0, 1):
+                row = TERRACOTTA_DARK[:3]
+            elif band == 5:
+                row = FIELD_LIGHT[:3]
+            else:
+                continue
+            for x in range(w):
+                px[x, y] = row
+        # 稀疏土块噪点（避开暗沟行）
+        for _ in range(w * h // 14):
+            x, y = rng.randint(0, w - 1), rng.randint(0, h - 1)
+            if y % 8 in (0, 1):
+                continue
+            _plot_wrap(px, w, h, x, y, WOOD_DARK[:3])
+    else:
+        raise KeyError(key)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(out_path)
+
+
 def _shift_frame(src: Image.Image, dx: int, dy: int) -> Image.Image:
     """透明画布上整体位移一帧（伪动画用）。"""
     frame = Image.new("RGBA", src.size, (0, 0, 0, 0))
@@ -912,7 +1217,9 @@ def generate(key: str) -> Path:
     out_path = OUT_ROOT / f"{key}.png"
     if key in ANIM_KEYS:
         return generate_anim(key)
-    if key in PIXEL_ART:
+    if key in SEAMLESS_GROUND:
+        render_seamless_ground(key, out_path, ITEM_SIZES[key])
+    elif key in PIXEL_ART:
         render_pixel_map(key, out_path, ITEM_SIZES[key])
     elif key == "bg/parchment":
         render_parchment(out_path)
