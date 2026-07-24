@@ -1,11 +1,19 @@
-import { PixelPanel } from '@/components/pixel'
+import { DecorShop } from './components/DecorShop'
+import { HomePreview } from './components/HomePreview'
+import { OverviewPanel } from './components/OverviewPanel'
+import { RulesBoard } from './components/RulesBoard'
 
-/** 成长系统模块 —— 占位页（growth 代理在此目录开发） */
+/**
+ * 成长中心：成长概览 / 装饰品商店 / 家园预览 / 奖励结算告示牌。
+ * 数据来源：useGameStore（player / quests / diaryEntries / inventory）。
+ */
 export default function GrowthPage() {
   return (
-    <PixelPanel className="text-center">
-      <h1 className="font-pixel text-sm text-wood-dark">GROWTH</h1>
-      <p className="mt-4 text-stone-dark">成长系统模块</p>
-    </PixelPanel>
+    <div className="space-y-3 p-1">
+      <OverviewPanel />
+      <DecorShop />
+      <HomePreview />
+      <RulesBoard />
+    </div>
   )
 }
