@@ -1,20 +1,26 @@
-import { NavLink, Route, Routes } from 'react-router'
+import { Link, NavLink, Route, Routes } from 'react-router'
+import { useState } from 'react'
 import { PixelProgressBar } from '@/components/pixel'
 import { useGameStore } from '@/store/gameStore'
 import AvatarPage from '@/features/avatar/AvatarPage'
+import HomePage from '@/features/home/HomePage'
 import QuestsPage from '@/features/quests/QuestsPage'
-import GrowthPage from '@/features/growth/GrowthPage'
+import TownPage from '@/features/town/TownPage'
 import DiaryPage from '@/features/diary/DiaryPage'
 import ResumePage from '@/features/resume/ResumePage'
 
-/** 顶栏 HUD：头像、等级、XP 条、金币 */
+/** 顶栏 HUD：头像（可点击 → /avatar）、等级、XP 条、金币 */
 function Hud() {
   const player = useGameStore((s) => s.player)
 
   return (
     <header className="pixel-border m-2 flex items-center gap-3 bg-parchment-light px-4 py-3">
-      {/* 头像缩略图 */}
-      <div className="pixel-border-sm h-12 w-12 shrink-0 overflow-hidden bg-parchment-dark">
+      {/* 头像缩略图（点击进入形象页） */}
+      <Link
+        to="/avatar"
+        className="pixel-border-sm pixel-press block h-12 w-12 shrink-0 overflow-hidden bg-parchment-dark"
+        aria-label="形象"
+      >
         {player.avatarUrl ? (
           <img
             src={player.avatarUrl}
@@ -26,7 +32,7 @@ function Hud() {
             ?
           </div>
         )}
-      </div>
+      </Link>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
@@ -66,12 +72,28 @@ function Hud() {
 }
 
 const NAV_ITEMS = [
-  { to: '/avatar', label: '形象', icon: '👤' },
-  { to: '/quests', label: '目标', icon: '⚔️' },
-  { to: '/growth', label: '成长', icon: '🌱' },
-  { to: '/diary', label: '日记', icon: '📖' },
-  { to: '/resume', label: '简历', icon: '📜' },
-]
+  { to: '/', label: '首页', icon: '🏠', img: '/assets/nav/home.png', end: true },
+  { to: '/quests', label: '任务', icon: '⚔️', img: '/assets/nav/quests.png' },
+  { to: '/town', label: '小镇', icon: '🏘️', img: '/assets/nav/town.png' },
+  { to: '/diary', label: '日记', icon: '📖', img: '/assets/nav/diary.png' },
+  { to: '/resume', label: '简历', icon: '📜', img: '/assets/nav/resume.png' },
+] as const
+
+/** 像素导航图标：图片缺失时降级为 emoji */
+function NavIcon({ img, icon, label }: { img: string; icon: string; label: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return <span className="text-base leading-none">{icon}</span>
+  }
+  return (
+    <img
+      src={img}
+      alt={label}
+      className="pixelated h-5 w-5"
+      onError={() => setFailed(true)}
+    />
+  )
+}
 
 /** 底部像素风导航 */
 function BottomNav() {
@@ -81,13 +103,14 @@ function BottomNav() {
         <NavLink
           key={item.to}
           to={item.to}
+          end={'end' in item && item.end}
           className={({ isActive }) =>
             `pixel-press flex flex-col items-center gap-1 px-3 py-1 font-pixel text-[10px] ${
               isActive ? 'bg-gold text-ink' : 'text-parchment-light hover:bg-wood-light'
             }`
           }
         >
-          <span className="text-base leading-none">{item.icon}</span>
+          <NavIcon img={item.img} icon={item.icon} label={item.label} />
           {item.label}
         </NavLink>
       ))}
@@ -101,10 +124,10 @@ export default function App() {
       <Hud />
       <main className="flex-1 overflow-y-auto p-2">
         <Routes>
-          <Route path="/" element={<AvatarPage />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/avatar" element={<AvatarPage />} />
           <Route path="/quests" element={<QuestsPage />} />
-          <Route path="/growth" element={<GrowthPage />} />
+          <Route path="/town" element={<TownPage />} />
           <Route path="/diary" element={<DiaryPage />} />
           <Route path="/resume" element={<ResumePage />} />
         </Routes>

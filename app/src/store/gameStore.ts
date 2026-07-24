@@ -44,6 +44,10 @@ export interface QuestNode {
   status: QuestNodeStatus
   rewardXp: number
   rewardCoins: number
+  /** ISO 日期（可选，截止日） */
+  deadline?: string
+  /** 所属阶段名（可选，用于阶段化展示） */
+  phase?: string
   children?: QuestNode[]
 }
 
@@ -54,6 +58,17 @@ export interface Quest {
   description: string
   createdAt: string
   nodes: QuestNode[]
+}
+
+/** 待办事项（首页/快速清单） */
+export interface Todo {
+  id: string
+  title: string
+  done: boolean
+  /** ISO 时间戳 */
+  createdAt: string
+  /** ISO 日期（可选，到期日） */
+  dueDate?: string
 }
 
 /** 背包/装饰品 */
@@ -78,15 +93,71 @@ export interface CareerIntent {
   requirements: string
 }
 
+// ---------- 小镇 slice ----------
+
+/** 小镇 NPC */
+export interface TownNpc {
+  id: string
+  name: string
+  /** 性格描述 */
+  personality: string
+  /** 好感度 0-100 */
+  favorability: number
+}
+
+export type CommissionStatus = 'offered' | 'accepted' | 'done'
+
+/** NPC 委托任务 */
+export interface Commission {
+  id: string
+  npcId: string
+  title: string
+  description: string
+  status: CommissionStatus
+  rewardCoins: number
+}
+
+/** 花园地块 */
+export interface GardenPlot {
+  id: string
+  /** 作物名 */
+  crop: string
+  /** 生长阶段 0=种子 1=幼苗 2=成熟 */
+  stage: 0 | 1 | 2
+  /** ISO 时间戳 */
+  plantedAt: string
+}
+
+/** 宠物 */
+export interface GardenPet {
+  adopted: boolean
+  name: string
+  /** 饱食度 0-100 */
+  hunger: number
+}
+
+export interface Garden {
+  plots: GardenPlot[]
+  pet: GardenPet
+}
+
+export interface TownState {
+  npcs: TownNpc[]
+  commissions: Commission[]
+  garden: Garden
+}
+
 // ---------- Store 状态与动作 ----------
 
 interface GameState {
   player: Player
   avatarDraft: AvatarDraft
   quests: Quest[]
+  todos: Todo[]
   inventory: Inventory
   diaryEntries: DiaryEntry[]
   careerIntent: CareerIntent
+  town: TownState
 
   // ----- 玩家/成长动作 -----
   /** 增加 XP，自动处理升级（level+1，xpToNext 按 1.5 倍增长） */
@@ -109,6 +180,11 @@ interface GameState {
   completeQuestNode: (questId: string, nodeId: string) => void
   removeQuest: (questId: string) => void
 
+  // ----- 待办 -----
+  addTodo: (todo: Omit<Todo, 'id' | 'done' | 'createdAt'> & { id?: string }) => void
+  toggleTodo: (todoId: string) => void
+  removeTodo: (todoId: string) => void
+
   // ----- 背包 -----
   addDecoration: (decorationId: string) => void
   /** 花金币购买装饰品；余额不足返回 false */
@@ -119,6 +195,23 @@ interface GameState {
 
   // ----- 职业意向 -----
   setCareerIntent: (intent: Partial<CareerIntent>) => void
+
+  // ----- 小镇：NPC / 委托 -----
+  /** 设置 NPC 好感度（自动钳制 0-100） */
+  setNpcFavorability: (npcId: string, favorability: number) => void
+  addCommission: (commission: Omit<Commission, 'id'> & { id?: string }) => void
+  updateCommissionStatus: (commissionId: string, status: CommissionStatus) => void
+
+  // ----- 小镇：家园 -----
+  /** 播种新地块 */
+  plantCrop: (crop: string) => void
+  /** 推进地块生长阶段（0→1→2，成熟后不变） */
+  advanceCropStage: (plotId: string) => void
+  /** 收获成熟地块（stage=2）并移除该地块 */
+  harvestPlot: (plotId: string) => void
+  adoptPet: (name: string) => void
+  /** 喂食宠物，饱食度 +amount（默认 20），封顶 100 */
+  feedPet: (amount?: number) => void
 }
 
 // ---------- 初始值 ----------
@@ -142,6 +235,37 @@ const initialAvatarDraft: AvatarDraft = {
 const initialCareerIntent: CareerIntent = {
   targetRole: '',
   requirements: '',
+}
+
+/** 预置小镇 NPC */
+const initialNpcs: TownNpc[] = [
+  {
+    id: 'elder',
+    name: '长者',
+    personality: '睿智而温和，喜欢用故事讲道理，欣赏踏实有耐心的年轻人',
+    favorability: 0,
+  },
+  {
+    id: 'merchant',
+    name: '商人',
+    personality: '精明健谈，重视效率与承诺，喜欢干脆利落、说到做到的人',
+    favorability: 0,
+  },
+  {
+    id: 'painter',
+    name: '画师',
+    personality: '浪漫敏感，痴迷色彩与美，容易被有想象力和真诚的表达打动',
+    favorability: 0,
+  },
+]
+
+const initialTown: TownState = {
+  npcs: initialNpcs,
+  commissions: [],
+  garden: {
+    plots: [],
+    pet: { adopted: false, name: '', hunger: 0 },
+  },
 }
 
 // ---------- 内部工具 ----------
@@ -186,6 +310,14 @@ function unlockChildren(nodes: QuestNode[], nodeId: string): QuestNode[] {
   })
 }
 
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, n))
+}
+
+function makeId(): string {
+  return crypto.randomUUID()
+}
+
 // ---------- Store ----------
 
 export const useGameStore = create<GameState>()(
@@ -194,9 +326,11 @@ export const useGameStore = create<GameState>()(
       player: initialPlayer,
       avatarDraft: initialAvatarDraft,
       quests: [],
+      todos: [],
       inventory: { decorations: [] },
       diaryEntries: [],
       careerIntent: initialCareerIntent,
+      town: initialTown,
 
       addXp: (amount) =>
         set((s) => {
@@ -256,6 +390,31 @@ export const useGameStore = create<GameState>()(
       removeQuest: (questId) =>
         set((s) => ({ quests: s.quests.filter((q) => q.id !== questId) })),
 
+      // ----- 待办 -----
+      addTodo: (todo) =>
+        set((s) => ({
+          todos: [
+            ...s.todos,
+            {
+              id: todo.id ?? makeId(),
+              title: todo.title,
+              done: false,
+              createdAt: new Date().toISOString(),
+              dueDate: todo.dueDate,
+            },
+          ],
+        })),
+
+      toggleTodo: (todoId) =>
+        set((s) => ({
+          todos: s.todos.map((t) =>
+            t.id === todoId ? { ...t, done: !t.done } : t,
+          ),
+        })),
+
+      removeTodo: (todoId) =>
+        set((s) => ({ todos: s.todos.filter((t) => t.id !== todoId) })),
+
       addDecoration: (decorationId) =>
         set((s) =>
           s.inventory.decorations.includes(decorationId)
@@ -286,10 +445,143 @@ export const useGameStore = create<GameState>()(
 
       setCareerIntent: (intent) =>
         set((s) => ({ careerIntent: { ...s.careerIntent, ...intent } })),
+
+      // ----- 小镇：NPC / 委托 -----
+      setNpcFavorability: (npcId, favorability) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            npcs: s.town.npcs.map((n) =>
+              n.id === npcId
+                ? { ...n, favorability: clamp(favorability, 0, 100) }
+                : n,
+            ),
+          },
+        })),
+
+      addCommission: (commission) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            commissions: [
+              ...s.town.commissions,
+              { ...commission, id: commission.id ?? makeId() },
+            ],
+          },
+        })),
+
+      updateCommissionStatus: (commissionId, status) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            commissions: s.town.commissions.map((c) =>
+              c.id === commissionId ? { ...c, status } : c,
+            ),
+          },
+        })),
+
+      // ----- 小镇：家园 -----
+      plantCrop: (crop) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            garden: {
+              ...s.town.garden,
+              plots: [
+                ...s.town.garden.plots,
+                {
+                  id: makeId(),
+                  crop,
+                  stage: 0 as const,
+                  plantedAt: new Date().toISOString(),
+                },
+              ],
+            },
+          },
+        })),
+
+      advanceCropStage: (plotId) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            garden: {
+              ...s.town.garden,
+              plots: s.town.garden.plots.map((p) =>
+                p.id === plotId
+                  ? { ...p, stage: Math.min(2, p.stage + 1) as 0 | 1 | 2 }
+                  : p,
+              ),
+            },
+          },
+        })),
+
+      harvestPlot: (plotId) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            garden: {
+              ...s.town.garden,
+              plots: s.town.garden.plots.filter(
+                (p) => !(p.id === plotId && p.stage === 2),
+              ),
+            },
+          },
+        })),
+
+      adoptPet: (name) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            garden: {
+              ...s.town.garden,
+              pet: { adopted: true, name, hunger: 50 },
+            },
+          },
+        })),
+
+      feedPet: (amount = 20) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            garden: {
+              ...s.town.garden,
+              pet: s.town.garden.pet.adopted
+                ? {
+                    ...s.town.garden.pet,
+                    hunger: clamp(s.town.garden.pet.hunger + amount, 0, 100),
+                  }
+                : s.town.garden.pet,
+            },
+          },
+        })),
     }),
     {
       name: 'zhijian-weilai-game', // localStorage key
-      version: 1,
+      version: 2,
+      migrate: (persistedState, version) => {
+        // v1 → v2：补齐 todos / town，旧数据（player/quests/diary 等）保留
+        const state = (persistedState ?? {}) as Partial<GameState>
+        if (version < 2) {
+          if (!Array.isArray(state.todos)) state.todos = []
+          const town = state.town as Partial<TownState> | undefined
+          state.town = {
+            npcs:
+              Array.isArray(town?.npcs) && town.npcs.length > 0
+                ? town.npcs
+                : initialNpcs,
+            commissions: Array.isArray(town?.commissions)
+              ? town.commissions
+              : [],
+            garden: {
+              plots: Array.isArray(town?.garden?.plots)
+                ? town.garden.plots
+                : [],
+              pet: town?.garden?.pet ?? { adopted: false, name: '', hunger: 0 },
+            },
+          }
+        }
+        return state as GameState
+      },
     },
   ),
 )
