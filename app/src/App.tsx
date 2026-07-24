@@ -46,7 +46,19 @@ function Hud() {
 
       {/* 金币 */}
       <div className="flex shrink-0 items-center gap-1 font-pixel text-xs text-gold-dark">
-        <span className="inline-block h-3 w-3 bg-gold" />
+        <img
+          src="/assets/ui/coin.png"
+          alt="金币"
+          className="pixelated h-4 w-4"
+          onError={(e) => {
+            // 素材缺失时降级为色块
+            const el = e.currentTarget
+            el.style.display = 'none'
+            const fallback = document.createElement('span')
+            fallback.className = 'inline-block h-3 w-3 bg-gold'
+            el.parentElement?.prepend(fallback)
+          }}
+        />
         {player.coins}
       </div>
     </header>
