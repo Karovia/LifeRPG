@@ -6,6 +6,7 @@ import type { LlmConfig, Quest, QuestNode } from '@/store/gameStore'
 import AchievementTree from './components/AchievementTree'
 import RewardToast, { type RewardInfo } from './components/RewardToast'
 import EmptyState from './components/EmptyState'
+import type { QuestReference } from './components/QuestNodeCard'
 
 /** 递归统计节点总数 / 已完成数 */
 function countNodes(nodes: QuestNode[]): { total: number; done: number } {
@@ -49,7 +50,7 @@ const SOURCE_BADGES: Record<DecomposeSource, string> = {
 interface DecomposeApiResponse {
   goal: string
   source: DecomposeSource
-  references: { title: string; snippet: string }[]
+  references: QuestReference[]
   phases: { name: string; weeks: number; deadline: string }[]
   nodes: QuestNode[]
 }
@@ -115,6 +116,8 @@ export default function QuestsPage() {
   const [notice, setNotice] = useState<string | null>(null)
   /** 本会话内新建的 questId → 拆解来源（历史目标无记录时回退 📦离线规则 徽标） */
   const [sourceById, setSourceById] = useState<Record<string, DecomposeSource>>({})
+  /** 本会话内新建的 questId → 联网参考资料（供节点卡片「📚 参考」展示） */
+  const [refsById, setRefsById] = useState<Record<string, QuestReference[]>>({})
 
   /** LLM 配置约定：enabled 且三字段齐备才上送，否则走本地/规则降级 */
   const llmReady = !!(
@@ -153,10 +156,12 @@ export default function QuestsPage() {
       let nodes: QuestNode[]
       let description: string
       let source: DecomposeSource
+      let refs: QuestReference[] = []
       if (data) {
         // 在线：使用中间件返回的成就树（节点带 deadline / phase）
         nodes = data.nodes
         source = data.source
+        refs = Array.isArray(data.references) ? data.references : []
         const refNote =
           data.source === 'llm+search'
             ? `大模型生成，注入 ${data.references.length} 条联网资料`
@@ -189,6 +194,7 @@ export default function QuestsPage() {
       }
       addQuest(quest)
       setSourceById((prev) => ({ ...prev, [quest.id]: source }))
+      setRefsById((prev) => ({ ...prev, [quest.id]: refs }))
       setSelectedId(quest.id)
       setGoalInput('')
     } finally {
@@ -211,6 +217,12 @@ export default function QuestsPage() {
     if (window.confirm(`确定要放弃目标「${q.title}」吗？该目标的成就树将被移除。`)) {
       removeQuest(questId)
       setSourceById((prev) => {
+        if (!(questId in prev)) return prev
+        const next = { ...prev }
+        delete next[questId]
+        return next
+      })
+      setRefsById((prev) => {
         if (!(questId in prev)) return prev
         const next = { ...prev }
         delete next[questId]
@@ -295,20 +307,28 @@ export default function QuestsPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="truncate font-pixel text-xs text-ink">{activeQuest.title}</h2>
-                {/* 拆解来源徽标：🤖AI拆解 / 🔍搜索+规则 / 📦离线规则 */}
+                {/* 拆解来源徽标：🤖AI拆解 / 🔍搜索+规则 / 📦离线规则 + 参考资料条数 */}
                 {(() => {
                   const src = sourceById[activeQuest.id] ?? LOCAL_SOURCE
                   const isAi = src === 'llm+search' || src === 'llm-only'
+                  const refCount = refsById[activeQuest.id]?.length ?? 0
                   return (
-                    <span
-                      className={`shrink-0 px-1.5 py-0.5 font-pixel text-[8px] ${
-                        isAi
-                          ? 'bg-moss-light/40 text-moss-dark'
-                          : 'bg-parchment-dark text-stone-dark'
-                      }`}
-                    >
-                      {SOURCE_BADGES[src]}
-                    </span>
+                    <>
+                      <span
+                        className={`shrink-0 px-1.5 py-0.5 font-pixel text-[8px] ${
+                          isAi
+                            ? 'bg-moss-light/40 text-moss-dark'
+                            : 'bg-parchment-dark text-stone-dark'
+                        }`}
+                      >
+                        {SOURCE_BADGES[src]}
+                      </span>
+                      {refCount > 0 && (
+                        <span className="shrink-0 bg-parchment-dark px-1.5 py-0.5 font-pixel text-[8px] text-moss-dark">
+                          📚 {refCount} 条参考
+                        </span>
+                      )}
+                    </>
                   )
                 })()}
               </div>
@@ -340,9 +360,13 @@ export default function QuestsPage() {
             </span>
           </div>
 
-          {/* 成就树（按阶段排列的天赋树） */}
+          {/* 成就树（按阶段排列的天赋树，节点卡片带「📚 参考」资料链接） */}
           <div className="mt-4">
-            <AchievementTree nodes={activeQuest.nodes} onComplete={handleComplete} />
+            <AchievementTree
+              nodes={activeQuest.nodes}
+              references={refsById[activeQuest.id] ?? []}
+              onComplete={handleComplete}
+            />
           </div>
         </PixelPanel>
       )}

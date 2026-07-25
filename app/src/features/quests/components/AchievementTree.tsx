@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { QuestNode } from '@/store/gameStore'
-import QuestNodeCard, { deadlineMeta } from './QuestNodeCard'
+import QuestNodeCard, { deadlineMeta, type QuestReference } from './QuestNodeCard'
 
 interface PhaseGroup {
   name: string
@@ -9,6 +9,8 @@ interface PhaseGroup {
 
 interface AchievementTreeProps {
   nodes: QuestNode[]
+  /** 本次拆解的联网参考资料（透传到节点卡片展示「📚 参考」） */
+  references?: QuestReference[]
   onComplete: (nodeId: string) => void
 }
 
@@ -57,7 +59,7 @@ function phaseDeadline(nodes: QuestNode[]): string | null {
  * 左侧纵向像素主干，按 phase 分阶段排列；每阶段有里程碑徽章，
  * 节点为徽章卡片，分支节点并排展开。
  */
-export default function AchievementTree({ nodes, onComplete }: AchievementTreeProps) {
+export default function AchievementTree({ nodes, references, onComplete }: AchievementTreeProps) {
   const phases = useMemo(() => groupByPhase(nodes), [nodes])
 
   return (
@@ -121,7 +123,7 @@ export default function AchievementTree({ nodes, onComplete }: AchievementTreePr
                     aria-hidden
                     className="absolute left-[-18px] top-6 h-[3px] w-[18px] bg-wood-light"
                   />
-                  <QuestNodeCard node={node} onComplete={onComplete} />
+                  <QuestNodeCard node={node} references={references} onComplete={onComplete} />
                 </div>
               ))}
             </div>
