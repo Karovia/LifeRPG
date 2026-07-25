@@ -1,11 +1,14 @@
 import type { LlmConfig } from '@/store/gameStore'
+import { llmConnectionPayload } from '@/lib/llmServerMode'
 
 /**
  * ============================================================
  * 魔法日记本 · LLM 回复接入（/api/llm 代理）
  * ------------------------------------------------------------
  * 约定（与 gameStore.llmConfig 注释一致）：
- *   仅当 enabled && baseURL && model && apiKey 四者齐备才发请求；
+ *   就绪判定：server mode（VITE_LLM_SERVER_MODE=true）直将就绪，
+ *   否则 enabled && baseURL && model && apiKey 四者齐备才发请求；
+ *   server mode 下请求不携带连接三件套，由服务端 function 注入 env。
  *   /api/llm 任何非 2xx、网络错误、超时（90s）一律视为失败，
  *   由调用方静默回退到本地 diaryReply，不阻断交互。
  * ============================================================
@@ -22,10 +25,8 @@ const SYSTEM_PROMPT =
   '回复 2-4 句，中文，先共情用户写的内容，' +
   '再给出一个具体可行的小建议或引发思考的提问。'
 
-/** 四者齐备才允许走 LLM */
-export function isLlmReady(cfg: LlmConfig): boolean {
-  return Boolean(cfg.enabled && cfg.baseURL && cfg.model && cfg.apiKey)
-}
+/** 就绪判定（server mode 或四件套齐备，见 @/lib/llmServerMode） */
+export { isLlmReady } from '@/lib/llmServerMode'
 
 /**
  * 请求 LLM 生成日记回复。
@@ -43,9 +44,8 @@ export async function fetchLlmDiaryReply(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        baseURL: cfg.baseURL,
-        apiKey: cfg.apiKey,
-        model: cfg.model,
+        // server mode 下为空对象（服务端注入 env）；用户自填四件套时原样上送
+        ...llmConnectionPayload(cfg),
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content },

@@ -10,14 +10,27 @@
  * - 64x64 pixflux 实测耗时 ~24s（冷请求可能 >120s），前端超时须放宽
  * - OpenAPI : https://api.pixellab.ai/v1/openapi.json
  *
- * 开发环境走 vite proxy：`/pixellab/*` → `https://api.pixellab.ai/v1/*`（绕 CORS）
+ * 开发环境走 vite proxy：`/pixellab/*` → `https://api.pixellab.ai/v1/*`（绕 CORS，浏览器自带 Bearer）
+ * 生产环境走同域 Vercel function：`/api/pixellab/*` → 上游（密钥由服务端
+ * PIXELLAB_API_KEY 注入，前端构建产物零密钥）
  * ============================================================
  */
 
 const API_KEY = import.meta.env.VITE_PIXELLAB_API_KEY as string | undefined
 
-/** 开发环境走 vite proxy；生产环境直连（要求服务端允许 CORS 或自行反代） */
-const BASE_URL = import.meta.env.DEV ? '/pixellab' : 'https://api.pixellab.ai/v1'
+/** 开发环境走 vite proxy（前端自带 key）；生产环境走同域 serverless 代理（key 在服务端注入） */
+const BASE_URL = import.meta.env.DEV ? '/pixellab' : '/api/pixellab'
+
+/** 仅开发环境要求前端持有 VITE_PIXELLAB_API_KEY；生产环境密钥在服务端 function */
+const REQUIRE_CLIENT_KEY = import.meta.env.DEV
+
+/** 请求头：dev 自带 Bearer（vite proxy 透传）；生产省略，由 function 注入 */
+function buildHeaders(withContentType = true): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (withContentType) headers['Content-Type'] = 'application/json'
+  if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`
+  return headers
+}
 
 /** 生成请求较慢，默认 3 分钟超时 */
 const DEFAULT_TIMEOUT_MS = 180_000
@@ -50,7 +63,7 @@ async function post<TReq extends object>(
   body: TReq,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<PixellabImageResponse> {
-  if (!API_KEY) {
+  if (REQUIRE_CLIENT_KEY && !API_KEY) {
     throw new PixellabError(
       '缺少 VITE_PIXELLAB_API_KEY，请在 app/.env 中配置后重启 dev server',
     )
@@ -60,10 +73,7 @@ async function post<TReq extends object>(
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-      },
+      headers: buildHeaders(),
       body: JSON.stringify(body),
       signal: controller.signal,
     })
@@ -142,7 +152,7 @@ export async function animateWithText(
   action: string,
   size: ImageSize = { width: 128, height: 128 },
 ): Promise<PixelImage[]> {
-  if (!API_KEY) {
+  if (REQUIRE_CLIENT_KEY && !API_KEY) {
     throw new PixellabError(
       '缺少 VITE_PIXELLAB_API_KEY，请在 app/.env 中配置后重启 dev server',
     )
@@ -152,10 +162,7 @@ export async function animateWithText(
   try {
     const res = await fetch(`${BASE_URL}/animate-with-text`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-      },
+      headers: buildHeaders(),
       body: JSON.stringify({
         description,
         action,
@@ -187,11 +194,11 @@ export async function animateWithText(
 
 /** 查询账户余额（USD） */
 export async function getBalance(): Promise<number> {
-  if (!API_KEY) {
+  if (REQUIRE_CLIENT_KEY && !API_KEY) {
     throw new PixellabError('缺少 VITE_PIXELLAB_API_KEY')
   }
   const res = await fetch(`${BASE_URL}/balance`, {
-    headers: { Authorization: `Bearer ${API_KEY}` },
+    headers: buildHeaders(false),
   })
   if (!res.ok) throw new PixellabError(`查询余额失败: HTTP ${res.status}`, res.status)
   const data = (await res.json()) as { type: string; usd?: number }

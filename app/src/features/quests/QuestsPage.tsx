@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { PixelButton, PixelPanel } from '@/components/pixel'
 import { decomposeGoal } from '@/lib/ai'
+import { isLlmReady } from '@/lib/llmServerMode'
 import { useGameStore } from '@/store/gameStore'
 import type { LlmConfig, Quest, QuestNode } from '@/store/gameStore'
 import AchievementTree from './components/AchievementTree'
@@ -119,13 +120,8 @@ export default function QuestsPage() {
   /** 本会话内新建的 questId → 联网参考资料（供节点卡片「📚 参考」展示） */
   const [refsById, setRefsById] = useState<Record<string, QuestReference[]>>({})
 
-  /** LLM 配置约定：enabled 且三字段齐备才上送，否则走本地/规则降级 */
-  const llmReady = !!(
-    llmConfig.enabled &&
-    llmConfig.baseURL.trim() &&
-    llmConfig.model.trim() &&
-    llmConfig.apiKey.trim()
-  )
+  /** LLM 就绪判定：server mode（密钥在服务端）或 enabled 且四件套齐备（见 @/lib/llmServerMode） */
+  const llmReady = isLlmReady(llmConfig)
 
   const activeQuest: Quest | null = useMemo(() => {
     if (quests.length === 0) return null
@@ -143,13 +139,17 @@ export default function QuestsPage() {
     setLoading(true)
     setNotice(null)
     try {
-      // 仅在配置齐备时随 goal 上送 llm（拆解 LLM 调用全部在服务端完成）
+      // 连接配置：四件套齐备（Admin 手填 / .env 默认）才随 goal 上送；
+      // server mode 下留空，由服务端 function 注入 env LLM_*（拆解 LLM 调用全部在服务端完成）
+      const connBaseURL = llmConfig.baseURL.trim()
+      const connApiKey = llmConfig.apiKey.trim()
+      const connModel = llmConfig.model.trim()
       const llmPayload: Pick<LlmConfig, 'baseURL' | 'apiKey' | 'model'> | undefined =
-        llmReady
+        llmReady && connBaseURL && connApiKey && connModel
           ? {
-              baseURL: llmConfig.baseURL.trim(),
-              apiKey: llmConfig.apiKey.trim(),
-              model: llmConfig.model.trim(),
+              baseURL: connBaseURL,
+              apiKey: connApiKey,
+              model: connModel,
             }
           : undefined
       const data = await fetchDecompose(goal, llmPayload)

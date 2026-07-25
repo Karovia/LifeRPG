@@ -354,6 +354,13 @@ const envLlmBaseURL = (import.meta.env.VITE_LLM_BASE_URL ?? '') as string
 const envLlmModel = (import.meta.env.VITE_LLM_MODEL ?? '') as string
 const envLlmApiKey = (import.meta.env.VITE_LLM_API_KEY ?? '') as string
 
+/**
+ * LLM Server Mode（生产部署 · 构建期注入 VITE_LLM_SERVER_MODE=true）：
+ * 前端不内置任何密钥，enabled 默认 true、连接三件套留空 ——
+ * 请求时由服务端 function 注入 LLM_* 环境变量（详见 src/lib/llmServerMode.ts）。
+ */
+const llmServerMode = (import.meta.env.VITE_LLM_SERVER_MODE ?? '') === 'true'
+
 /** 全空配置：Admin 页「清空」时使用，回到本地降级模式 */
 const emptyLlmConfig: LlmConfig = {
   baseURL: '',
@@ -362,13 +369,21 @@ const emptyLlmConfig: LlmConfig = {
   enabled: false,
 }
 
-const initialLlmConfig: LlmConfig = {
-  baseURL: envLlmBaseURL,
-  model: envLlmModel,
-  apiKey: envLlmApiKey,
-  // 仅当三项都非空时默认开启，开箱即用
-  enabled: Boolean(envLlmBaseURL && envLlmModel && envLlmApiKey),
-}
+const initialLlmConfig: LlmConfig = llmServerMode
+  ? {
+      // server mode：连接三件套留空（服务端注入），enabled 默认 true 开箱即用
+      baseURL: '',
+      model: '',
+      apiKey: '',
+      enabled: true,
+    }
+  : {
+      baseURL: envLlmBaseURL,
+      model: envLlmModel,
+      apiKey: envLlmApiKey,
+      // 仅当三项都非空时默认开启，开箱即用
+      enabled: Boolean(envLlmBaseURL && envLlmModel && envLlmApiKey),
+    }
 
 /** 预置小镇 NPC */
 const initialNpcs: TownNpc[] = [

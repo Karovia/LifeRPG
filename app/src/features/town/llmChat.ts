@@ -1,11 +1,14 @@
 import type { LlmConfig, TownNpc } from '@/store/gameStore'
+import { llmConnectionPayload } from '@/lib/llmServerMode'
 
 /**
  * ============================================================
  * 小镇 NPC 对话 · LLM 接入（/api/llm 代理）
  * ------------------------------------------------------------
  * 约定（与 diary/llm.ts 一致）：
- *   仅当 enabled && baseURL && model && apiKey 四者齐备才发请求；
+ *   就绪判定：server mode（VITE_LLM_SERVER_MODE=true）直将就绪，
+ *   否则 enabled && baseURL && model && apiKey 四者齐备才发请求；
+ *   server mode 下请求不携带连接三件套，由服务端 function 注入 env。
  *   任何非 2xx、网络错误、超时（60s）、空内容一律抛错，
  *   由调用方静默回退本地回复池，不阻断对话交互。
  * ============================================================
@@ -34,10 +37,8 @@ export interface FetchNpcReplyParams {
   favorability: number
 }
 
-/** 四者齐备才允许走 LLM */
-export function isLlmReady(cfg: LlmConfig): boolean {
-  return Boolean(cfg.enabled && cfg.baseURL && cfg.model && cfg.apiKey)
-}
+/** 就绪判定（server mode 或四件套齐备，见 @/lib/llmServerMode） */
+export { isLlmReady } from '@/lib/llmServerMode'
 
 /** 好感度阶段语气描述：低则生疏客气，高则热情亲近 */
 function favorStageText(favorability: number): string {
@@ -88,9 +89,8 @@ export async function fetchNpcReply({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        baseURL: llmConfig.baseURL,
-        apiKey: llmConfig.apiKey,
-        model: llmConfig.model,
+        // server mode 下为空对象（服务端注入 env）；用户自填四件套时原样上送
+        ...llmConnectionPayload(llmConfig),
         messages: [
           { role: 'system', content: buildSystemPrompt(npc, favorability) },
           ...historyMessages,
@@ -189,9 +189,8 @@ export async function fetchCommission(params: FetchCommissionParams): Promise<Co
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        baseURL: llmConfig.baseURL,
-        apiKey: llmConfig.apiKey,
-        model: llmConfig.model,
+        // server mode 下为空对象（服务端注入 env）；用户自填四件套时原样上送
+        ...llmConnectionPayload(llmConfig),
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
