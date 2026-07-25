@@ -14,6 +14,15 @@ import { persist } from 'zustand/middleware'
  *     `llmConfig.enabled && llmConfig.baseURL && llmConfig.model && llmConfig.apiKey`
  *     任一不满足 → 必须走本地降级逻辑，不得直接发起 LLM 请求。
  *   - adminAuthed（Admin 页登录态）
+ *
+ * v5 新增（家园建设 + 委托去重轮）：
+ *   - town.placements：建筑放置（kind/x/y/placedAt）。
+ *     addPlacement 扣款落位（coins 不足返回 false，id = `${kind}-${时间戳}`）；
+ *     removePlacement 移除并返还一半成本（造价以 PLACEMENT_COSTS 为据，向下取整）。
+ *   - town.roads：玩家铺路（x/y）。addRoad 扣款落子
+ *     （位置重复或 coins 不足返回 false）；removeRoad 移除。
+ *   - town.commissionHistory：已完成委托历史（key/title/doneAt），只增不减，
+ *     供委托生成端排除重复；既有 commissions 数组保持不变。
  * ============================================================
  */
 
@@ -139,6 +148,50 @@ export interface Commission {
   rewardCoins: number
 }
 
+/** 可放置建筑类型 */
+export type PlacementKind =
+  | 'house-red'
+  | 'house-wood'
+  | 'house-tall'
+  | 'well'
+  | 'tree-big'
+
+/**
+ * 建筑造价表。addPlacement 的 cost 建议调用方传 PLACEMENT_COSTS[kind]；
+ * removePlacement 的退款（造价一半，向下取整）以此为据。
+ */
+export const PLACEMENT_COSTS: Record<PlacementKind, number> = {
+  'house-red': 200,
+  'house-wood': 120,
+  'house-tall': 350,
+  well: 80,
+  'tree-big': 50,
+}
+
+/** 小镇建筑放置 */
+export interface Placement {
+  id: string
+  kind: PlacementKind
+  x: number
+  y: number
+  /** ISO 时间戳 */
+  placedAt: string
+}
+
+/** 玩家铺设的道路格 */
+export interface Road {
+  x: number
+  y: number
+}
+
+/** 已完成委托历史（去重用，只增不减） */
+export interface CommissionHistoryEntry {
+  key: string
+  title: string
+  /** ISO 时间戳 */
+  doneAt: string
+}
+
 /** 花园地块 */
 export interface GardenPlot {
   id: string
@@ -167,6 +220,12 @@ export interface TownState {
   npcs: TownNpc[]
   commissions: Commission[]
   garden: Garden
+  /** 建筑放置列表（v5） */
+  placements: Placement[]
+  /** 玩家铺设的道路（v5） */
+  roads: Road[]
+  /** 已完成委托历史，只增不减，供生成端去重（v5） */
+  commissionHistory: CommissionHistoryEntry[]
 }
 
 // ---------- Store 状态与动作 ----------
@@ -245,6 +304,26 @@ interface GameState {
   adoptPet: (name: string) => void
   /** 喂食宠物，饱食度 +amount（默认 20），封顶 100 */
   feedPet: (amount?: number) => void
+
+  // ----- 小镇：建筑放置 / 铺路 / 委托历史（v5） -----
+  /**
+   * 放置建筑：coins 不足返回 false；否则扣款并落位，
+   * id = `${kind}-${时间戳}`。cost 建议传 PLACEMENT_COSTS[kind]
+   */
+  addPlacement: (
+    kind: PlacementKind,
+    x: number,
+    y: number,
+    cost: number,
+  ) => boolean
+  /** 移除建筑并返还一半成本（以 PLACEMENT_COSTS[kind] 为据，向下取整）；无此 id 返回 0 */
+  removePlacement: (id: string) => number
+  /** 铺路：(x,y) 已存在道路或 coins 不足返回 false；否则扣款落子 */
+  addRoad: (x: number, y: number, cost: number) => boolean
+  /** 移除 (x,y) 处的道路（无此位置则无操作） */
+  removeRoad: (x: number, y: number) => void
+  /** 记录已完成委托（只增不减，供委托生成端排除重复） */
+  addCommissionToHistory: (key: string, title: string) => void
 }
 
 // ---------- 初始值 ----------
@@ -320,6 +399,9 @@ const initialTown: TownState = {
     plots: [],
     pet: { adopted: false, name: '', hunger: 0 },
   },
+  placements: [],
+  roads: [],
+  commissionHistory: [],
 }
 
 // ---------- 内部工具 ----------
@@ -618,10 +700,71 @@ export const useGameStore = create<GameState>()(
             },
           },
         })),
+
+      // ----- 小镇：建筑放置 / 铺路 / 委托历史（v5） -----
+      addPlacement: (kind, x, y, cost) => {
+        if (get().player.coins < cost) return false
+        const placement: Placement = {
+          id: `${kind}-${Date.now()}`,
+          kind,
+          x,
+          y,
+          placedAt: new Date().toISOString(),
+        }
+        set((s) => ({
+          player: { ...s.player, coins: Math.max(0, s.player.coins - cost) },
+          town: { ...s.town, placements: [...s.town.placements, placement] },
+        }))
+        return true
+      },
+
+      removePlacement: (id) => {
+        const placement = get().town.placements.find((p) => p.id === id)
+        if (!placement) return 0
+        const refund = Math.floor(PLACEMENT_COSTS[placement.kind] / 2)
+        set((s) => ({
+          player: { ...s.player, coins: s.player.coins + refund },
+          town: {
+            ...s.town,
+            placements: s.town.placements.filter((p) => p.id !== id),
+          },
+        }))
+        return refund
+      },
+
+      addRoad: (x, y, cost) => {
+        const { player, town } = get()
+        if (town.roads.some((r) => r.x === x && r.y === y)) return false
+        if (player.coins < cost) return false
+        set((s) => ({
+          player: { ...s.player, coins: Math.max(0, s.player.coins - cost) },
+          town: { ...s.town, roads: [...s.town.roads, { x, y }] },
+        }))
+        return true
+      },
+
+      removeRoad: (x, y) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            roads: s.town.roads.filter((r) => !(r.x === x && r.y === y)),
+          },
+        })),
+
+      addCommissionToHistory: (key, title) =>
+        set((s) => ({
+          town: {
+            ...s.town,
+            commissionHistory: [
+              ...s.town.commissionHistory,
+              { key, title, doneAt: new Date().toISOString() },
+            ],
+          },
+        })),
     }),
     {
       name: 'zhijian-weilai-game', // localStorage key
-      version: 4,
+      version: 5,
       migrate: (persistedState, version) => {
         // v1 → v2：补齐 todos / town，旧数据（player/quests/diary 等）保留
         const state = (persistedState ?? {}) as Partial<GameState>
@@ -671,6 +814,31 @@ export const useGameStore = create<GameState>()(
               apiKey: cfg?.apiKey || initialLlmConfig.apiKey,
               enabled: cfg?.enabled === true,
             }
+          }
+        }
+        // v4 → v5：家园建设 + 委托去重。补齐 town.placements / roads /
+        //   commissionHistory（缺省空数组），npcs/commissions/garden 及其余字段一律保留
+        if (version < 5) {
+          const town = state.town as Partial<TownState> | undefined
+          state.town = {
+            npcs:
+              Array.isArray(town?.npcs) && town.npcs.length > 0
+                ? town.npcs
+                : initialNpcs,
+            commissions: Array.isArray(town?.commissions)
+              ? town.commissions
+              : [],
+            garden: {
+              plots: Array.isArray(town?.garden?.plots)
+                ? town.garden.plots
+                : [],
+              pet: town?.garden?.pet ?? { adopted: false, name: '', hunger: 0 },
+            },
+            placements: Array.isArray(town?.placements) ? town.placements : [],
+            roads: Array.isArray(town?.roads) ? town.roads : [],
+            commissionHistory: Array.isArray(town?.commissionHistory)
+              ? town.commissionHistory
+              : [],
           }
         }
         return state as GameState
