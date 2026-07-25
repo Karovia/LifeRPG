@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readBody, sendJson } from './_lib/http'
-import { forwardLlmRequest } from './_lib/llm-core'
+import { readBody, sendJson } from './_lib/http.js'
+import { forwardLlmRequest } from './_lib/llm-core.js'
 
 /**
  * ============================================================

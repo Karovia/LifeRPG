@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { errorMessage, readRawBody, sendJson } from '../_lib/http'
+import { errorMessage, readRawBody, sendJson } from '../_lib/http.js'
 
 /**
  * ============================================================

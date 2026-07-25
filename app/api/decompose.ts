@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readBody, sendJson } from './_lib/http'
-import { resolveLlmConfig, runDecompose } from './_lib/decompose-core'
+import { readBody, sendJson } from './_lib/http.js'
+import { resolveLlmConfig, runDecompose } from './_lib/decompose-core.js'
 
 /**
  * ============================================================
