@@ -102,3 +102,23 @@ init-webapp.sh 初始化 `app/` → git init → 设计基础（像素字体/调
 - 修复清单：无（本轮无需修复的小问题）
 - 遗留：① 农田冷却中的变暗提示依赖下一次渲染刷新（纯展示细节，不影响冷却拦截）；② DuckDuckGo 联网检索仍需有外网环境验证（沿第二/四轮遗留）
 - 集成 commit：见下方 git log 最新一条 chore
+
+---
+
+# 第六轮迭代（2026-07-25）
+
+需求：委托去重+状态感知（LLM 生成注入玩家目标/日记/历史，本地池每 NPC 7 条带 key）｜经济平衡（农田冷却 15s/格、奖励胡萝卜 8/南瓜 18/小麦 12、钓鱼 3~12 且冷却 8s）｜家园建设（32×20 地图、🔨 建设模式放建筑/铺路/拆除半价退款、动态阻挡）｜移动端虚拟摇杆（8 方向 160ms/步）。
+
+- `81bf61d` feat(store)：v5 扩容（town.placements 建筑放置 / roads 铺路 / commissionHistory 委托历史 + PLACEMENT_COSTS，自动迁移旧数据）
+- `a8cef7f` feat(town)：委托去重+状态感知、经济平衡、家园建设（canPlaceBuilding/canPaveRoad 判定、动态阻挡 isBlockedDyn、建设模式 UI）、虚拟摇杆（VirtualJoystick + isTouchDevice）
+
+## 第六轮验收结果（✅ 通过，集成工程师_S03f）
+
+- 2 个 commit 在案（81bf61d store / a8cef7f town），`git status` 干净
+- `npm run build` 通过（tsc + vite，85 模块，dist 430.53 kB JS / gzip 134.23 kB）
+- 修复 2 处 TS 报错：① `TownMap.tsx` 摇杆 `onStep` 类型不匹配（VirtualJoystick 回调签名 `(dir: Pos) => void` vs stepPlayer `(dx, dy)`）→ 新增 `stepPlayerByDir` 包装回调；② `gameStore.ts` migrate v1→v2 分支重建 town 缺 v5 三字段 → 迁移块补齐 placements/roads/commissionHistory（缺省空数组）
+- dev server 冒烟（:3000，strictPort）：`/town`、`/assets/buildings/house-tall.png` 均 200；stub OpenAI（node :3999）+ `POST /api/llm` 返回委托 JSON（`elder-99/测试委托/30 金币`），LLM 中转链路正常（town 委托生成同通道）
+- 代码快查（只读）：① townData 地图 32×20，canPlaceBuilding/canPaveRoad 覆盖水面/道路/农田/设施/既有建筑/已放置/NPC 站位/额外占用格；② NpcDialog done 时调用 addCommissionToHistory（key+title），LLM 重复 key 重试 1 次（attempt<2, dup→continue）后回退本地池（排除历史 key，用尽给提示）；③ TownMap placements/roads 参与阻挡（isBlockedDyn 读 getState 最新值）与渲染（placements.map / roads.map），addPlacement 传 PLACEMENT_COSTS[kind]、removePlacement 半价退款；④ 摇杆仅触屏渲染（pointer: coarse / ontouchstart），桌面端不渲染不碍事
+- 进程停止确认：smoke 后 3000/3999 端口 lsof 0 监听、vite/stub 进程 pgrep 0；7100 Kimi Work 预览进程未受影响
+- 遗留：① 首次完整 build 偶发超时（tsc 冷启动 + vite 首次构建，分步重跑即过，非代码问题）；② DuckDuckGo 联网检索仍需有外网环境验证（沿第二/四/五轮遗留）
+- 集成 commit：见 git log 最新一条 chore（round-6）

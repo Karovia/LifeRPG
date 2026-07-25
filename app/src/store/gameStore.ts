@@ -785,6 +785,12 @@ export const useGameStore = create<GameState>()(
                 : [],
               pet: town?.garden?.pet ?? { adopted: false, name: '', hunger: 0 },
             },
+            // v5 字段在此一并补齐（缺省空数组），保证任何版本迁移后 town 均为完整 TownState
+            placements: Array.isArray(town?.placements) ? town.placements : [],
+            roads: Array.isArray(town?.roads) ? town.roads : [],
+            commissionHistory: Array.isArray(town?.commissionHistory)
+              ? town.commissionHistory
+              : [],
           }
         }
         // v2 → v3：补齐 llmConfig / adminAuthed，旧数据全部保留

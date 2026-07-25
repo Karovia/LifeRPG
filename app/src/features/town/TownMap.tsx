@@ -460,6 +460,9 @@ export function TownMap({ movementEnabled, onNpcClick, selectedSeed, buildMode, 
     [pulseWalking, isBlockedDyn],
   )
 
+  /** 虚拟摇杆回调适配：摇杆以 Pos 形式给出 8 方向，包装成 stepPlayer(dx, dy) */
+  const stepPlayerByDir = useCallback((d: Pos) => stepPlayer(d.x, d.y), [stepPlayer])
+
   // 键盘移动（方向键 / WASD），输入框聚焦时不劫持；卸载清理
   useEffect(() => {
     if (!movementEnabled) return
@@ -1192,7 +1195,7 @@ export function TownMap({ movementEnabled, onNpcClick, selectedSeed, buildMode, 
 
       {/* 移动端虚拟摇杆（左下角；触屏设备才显示，对话打开时隐藏不挡对话条） */}
       {touchDevice && (
-        <VirtualJoystick visible={movementEnabled} onStep={stepPlayer} />
+        <VirtualJoystick visible={movementEnabled} onStep={stepPlayerByDir} />
       )}
 
       {/* 建设模式：拆除二次确认条（点选建筑后滑出，半价退款） */}
