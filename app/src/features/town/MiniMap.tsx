@@ -1,3 +1,4 @@
+import { useGameStore } from '@/store/gameStore'
 import { useEffect, useRef } from 'react'
 import {
   BUILDINGS,
@@ -5,12 +6,13 @@ import {
   MAP_COLS,
   MAP_ROWS,
   NPC_META,
+  PLACEMENT_DEFS,
   TILE_STYLE,
   TOWN_MAP,
   type Pos,
 } from './townData'
 
-/** 小地图缩放：每格 5px → 120x80 画布 */
+/** 小地图缩放：每格 5px → 160x100 画布 */
 const SCALE = 5
 
 interface MiniMapProps {
@@ -19,9 +21,11 @@ interface MiniMapProps {
   petAdopted: boolean
 }
 
-/** 左上角小地图：canvas 绘制世界轮廓 + 玩家/NPC/宠物光点，实时更新 */
+/** 左上角小地图：canvas 绘制世界轮廓 + 玩家自建建筑/道路 + 玩家/NPC/宠物光点，实时更新 */
 export function MiniMap({ playerPos, petPos, petAdopted }: MiniMapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const placements = useGameStore((s) => s.town.placements)
+  const roads = useGameStore((s) => s.town.roads)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -40,10 +44,21 @@ export function MiniMap({ playerPos, petPos, petAdopted }: MiniMapProps) {
     ctx.fillStyle = TILE_STYLE.F.color
     FARM_CELLS.forEach((c) => ctx.fillRect(c.x * SCALE, c.y * SCALE, SCALE, SCALE))
 
+    // 玩家铺设的道路（石板路色）
+    ctx.fillStyle = TILE_STYLE.p.mini ?? TILE_STYLE.p.color
+    roads.forEach((r) => ctx.fillRect(r.x * SCALE, r.y * SCALE, SCALE, SCALE))
+
     // 建筑 footprint（房屋 / 水井 / 大树按各自小地图色，码头用木色）
     BUILDINGS.forEach((b) => {
       ctx.fillStyle = b.mini
       ctx.fillRect(b.x * SCALE, b.y * SCALE, b.w * SCALE, b.h * SCALE)
+    })
+
+    // 玩家自建建筑 footprint（按 PlacementDef 的小地图色）
+    placements.forEach((p) => {
+      const def = PLACEMENT_DEFS[p.kind]
+      ctx.fillStyle = def.mini
+      ctx.fillRect(p.x * SCALE, p.y * SCALE, def.w * SCALE, def.h * SCALE)
     })
 
     // NPC 光点（浆果红）
@@ -63,7 +78,7 @@ export function MiniMap({ playerPos, petPos, petAdopted }: MiniMapProps) {
     ctx.fillRect(playerPos.x * SCALE - 1, playerPos.y * SCALE - 1, SCALE + 2, SCALE + 2)
     ctx.fillStyle = '#D9A441'
     ctx.fillRect(playerPos.x * SCALE, playerPos.y * SCALE, SCALE, SCALE)
-  }, [playerPos, petPos, petAdopted])
+  }, [playerPos, petPos, petAdopted, placements, roads])
 
   return (
     <div className="pixel-border-sm pointer-events-none m-1 bg-parchment-dark p-1">

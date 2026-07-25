@@ -94,7 +94,7 @@ export function GardenPanel({ onClose, selectedSeed, onSelectSeed }: GardenPanel
           </div>
           <p className="text-[11px] leading-4 text-stone-dark">
             点击右下农田区：空地播种当前种子 → 再点浇水生长 → 成熟（金框）收获金币。每格操作有
-            2.5s 冷却。
+            15s 冷却（格上会显示剩余秒数）。
           </p>
           {plots.length > 0 && (
             <div className="mt-1 font-pixel text-[9px] text-stone">

@@ -2,11 +2,11 @@ import { PixelButton, PixelPanel, PixelProgressBar } from '@/components/pixel'
 import { useGameStore } from '@/store/gameStore'
 import { useEffect, useRef, useState } from 'react'
 import { PixelImage } from './PixelImage'
-import { fetchNpcReply, isLlmReady } from './llmChat'
+import { fetchCommission, fetchNpcReply, isLlmReady } from './llmChat'
 import {
   DECOR_ITEMS,
   NPC_META,
-  buildCommission,
+  buildLocalCommission,
   npcGreeting,
   npcReply,
   scoreMessage,
@@ -40,6 +40,9 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
   const llmConfig = useGameStore((s) => s.llmConfig)
   const decorations = useGameStore((s) => s.inventory.decorations)
   const buyDecoration = useGameStore((s) => s.buyDecoration)
+  const commissionHistory = useGameStore((s) => s.town.commissionHistory)
+  const addCommissionToHistory = useGameStore((s) => s.addCommissionToHistory)
+  const diaryEntries = useGameStore((s) => s.diaryEntries)
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => [
     { from: 'npc', text: npcGreeting(npcId) },
@@ -49,6 +52,10 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
   const [reportHint, setReportHint] = useState<string | null>(null)
   /** LLM 思考中：禁用输入，展示「对方正在想…」动画 */
   const [thinking, setThinking] = useState(false)
+  /** 委托生成中（LLM 请求可能较慢） */
+  const [commissionBusy, setCommissionBusy] = useState(false)
+  /** 委托池耗尽等提示 */
+  const [commissionNote, setCommissionNote] = useState<string | null>(null)
   /** 商人专属页签：闲聊 / 商店 */
   const [tab, setTab] = useState<'chat' | 'shop'>('chat')
   const [shopHint, setShopHint] = useState<string | null>(null)
@@ -123,15 +130,82 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
     if (delta > 0) setNpcFavorability(npcId, npc.favorability + delta)
   }
 
-  const offerCommission = () => {
-    const tpl = buildCommission(npc, player, quests)
-    addCommission({
-      npcId,
-      title: tpl.title,
-      description: tpl.description,
-      status: 'offered',
-      rewardCoins: tpl.rewardCoins,
-    })
+  const offerCommission = async () => {
+    if (commissionBusy) return
+    setCommissionBusy(true)
+    setCommissionNote(null)
+    // 去重基准：历史 key（永不复现）+ 现有委托 id/title（避免在途重复）
+    const historyKeys = new Set(commissionHistory.map((h) => h.key))
+    const historyTitles = new Set(commissionHistory.map((h) => h.title))
+    const existingIds = new Set(commissions.map((c) => c.id))
+    const existingTitles = new Set(commissions.map((c) => c.title))
+    try {
+      // ----- LLM 路径：注入玩家状态，严格 JSON，重复则重试 1 次 -----
+      if (llmReady) {
+        const questLines = quests.map((q) => {
+          const avail: string[] = []
+          const walk = (nodes: typeof q.nodes) =>
+            nodes.forEach((n) => {
+              if (n.status === 'available') avail.push(n.title)
+              if (n.children) walk(n.children)
+            })
+          walk(q.nodes)
+          return `- 「${q.title}」${avail.length > 0 ? `（待完成：${avail.slice(0, 3).join('、')}）` : ''}`
+        })
+        const diaryLines = diaryEntries
+          .slice(-3)
+          .map((d) => `- ${d.date}：${d.content.slice(0, 60)}`)
+        const historyLines = commissionHistory.map((h) => `- ${h.key}：${h.title}`)
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const draft = await fetchCommission({
+              llmConfig,
+              npc,
+              playerLevel: player.level,
+              questLines,
+              diaryLines,
+              favorability: npc.favorability,
+              historyLines,
+            })
+            const dup =
+              historyKeys.has(draft.key) ||
+              existingIds.has(draft.key) ||
+              historyTitles.has(draft.title) ||
+              existingTitles.has(draft.title)
+            if (dup) continue // 重复：重试一次，再重复则落到本地池
+            addCommission({
+              id: draft.key, // key 即 commission.id，完成后据此写入 history
+              npcId,
+              title: draft.title,
+              description: draft.description,
+              status: 'offered',
+              rewardCoins: draft.rewardCoins,
+            })
+            return
+          } catch {
+            break // LLM 失败：静默回退本地模板池
+          }
+        }
+      }
+
+      // ----- 本地回退：模板池（排除历史 key），全用完则提示 -----
+      const draft = buildLocalCommission(npc, player, quests, historyKeys, existingTitles)
+      if (!draft) {
+        setCommissionNote('暂时没有新委托，去和别家聊聊吧')
+        return
+      }
+      addCommission({
+        id: draft.key,
+        npcId,
+        title: draft.title,
+        description: draft.description,
+        status: 'offered',
+        rewardCoins: draft.rewardCoins,
+      })
+    } finally {
+      setCommissionBusy(false)
+    }
   }
 
   const submitReport = () => {
@@ -142,6 +216,8 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
       return
     }
     updateCommissionStatus(activeCommission.id, 'done')
+    // 写入委托历史（只增不减）：key 去重，该委托永不复现
+    addCommissionToHistory(activeCommission.id, activeCommission.title)
     addCoins(activeCommission.rewardCoins)
     setNpcFavorability(npcId, npc.favorability + 5)
     setMessages((m) => [
@@ -323,15 +399,20 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
           <div className="mb-1 font-pixel text-[10px] text-wood-dark">委托</div>
 
           {!activeCommission && (
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-stone-dark">
-                {doneCommissions.length > 0
-                  ? `已完成 ${doneCommissions.length} 个委托`
-                  : '这位居民似乎有个挑战想交给你'}
-              </span>
-              <PixelButton variant="gold" onClick={offerCommission}>
-                领取委托
-              </PixelButton>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-stone-dark">
+                  {doneCommissions.length > 0
+                    ? `已完成 ${doneCommissions.length} 个委托（做过的不会再来）`
+                    : '这位居民似乎有个挑战想交给你'}
+                </span>
+                <PixelButton variant="gold" onClick={offerCommission} disabled={commissionBusy}>
+                  {commissionBusy ? '构思中…' : '求委托'}
+                </PixelButton>
+              </div>
+              {commissionNote && (
+                <div className="font-pixel text-[9px] text-stone-dark">{commissionNote}</div>
+              )}
             </div>
           )}
 
@@ -340,6 +421,9 @@ export function NpcDialog({ npcId, onClose }: NpcDialogProps) {
               <div className="font-pixel text-[10px] text-ink">
                 {activeCommission.title}
                 <span className="ml-1 text-gold-dark">+{activeCommission.rewardCoins} 金币</span>
+                {activeCommission.id.length <= 16 && (
+                  <span className="ml-1 text-[8px] text-stone">#{activeCommission.id}</span>
+                )}
               </div>
               <p className="text-[11px] leading-4 text-stone-dark">
                 {activeCommission.description}
