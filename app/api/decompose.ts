@@ -39,7 +39,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   let goal = ''
   let llmRaw: unknown
   try {
-    const body = JSON.parse(await readBody(req, MAX_BODY_BYTES)) as DecomposeRequestBody
+    // Vercel 默认 bodyParser 已消费请求流并挂到 req.body；优先使用，避免流事件不触发
+    const preParsed = (req as IncomingMessage & { body?: unknown }).body
+    const rawText =
+      preParsed != null
+        ? typeof preParsed === 'string'
+          ? preParsed
+          : JSON.stringify(preParsed)
+        : await readBody(req, MAX_BODY_BYTES)
+    const body = JSON.parse(rawText) as DecomposeRequestBody
     if (typeof body.goal === 'string') goal = body.goal.trim().slice(0, 80)
     llmRaw = body.llm
   } catch {

@@ -28,9 +28,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     sendJson(res, 405, { error: 'Method Not Allowed, use POST' })
     return
   }
+  // Vercel 默认 bodyParser 会预先消费请求流并挂到 req.body 上；
+  // 直接监 'data'/'end' 会永远收不到事件导致函数超时，故优先读 req.body
+  const preParsed = (req as IncomingMessage & { body?: unknown }).body
   let rawBody: string
   try {
-    rawBody = await readBody(req, MAX_BODY_BYTES)
+    if (preParsed != null) {
+      rawBody = typeof preParsed === 'string' ? preParsed : JSON.stringify(preParsed)
+    } else {
+      rawBody = await readBody(req, MAX_BODY_BYTES)
+    }
   } catch {
     sendJson(res, 413, { error: '请求体过大（上限 1MB）' })
     return
