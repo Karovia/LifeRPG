@@ -1,0 +1,143 @@
+pageType: content
+background:
+  type: image
+  src: assets/背景/bg-desk.png
+  fit: {mode: cover}
+notes: 功能② 魔法日记本 + 自动化简历：写字消失、AI 墨水回应；成长记录一键成简历
+elements:
+  - elementId: hdr-brand
+    elementType: text
+    bounds: [48, 22, 240, 16]
+    content:
+      style: "$pixelLabel"
+      color: "$cream"
+      align: [left, middle]
+      wrap: false
+      text: ZHIJIAN · LIFE RPG
+  - elementId: hdr-page
+    elementType: text
+    bounds: [792, 22, 120, 16]
+    content:
+      style: "$pixelLabel"
+      color: "$cream"
+      align: [right, middle]
+      wrap: false
+      text: 06 / 09
+  - elementId: title-strip
+    elementType: shape
+    bounds: [36, 44, 660, 56]
+    shapeName: rect
+    fill: {type: solid, color: "#2B201599"}
+  - elementId: title
+    elementType: text
+    bounds: [48, 50, 800, 42]
+    content:
+      style: "$pageTitle"
+      color: "$cream"
+      align: [left, middle]
+      wrap: false
+      text: 功能 ② · 魔法日记本 × 自动化简历
+  - elementId: title-tick
+    elementType: shape
+    bounds: [50, 100, 72, 5]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+  # 左面板：魔法日记本
+  - elementId: panel-l
+    elementType: shape
+    bounds: [48, 140, 420, 336]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 3, color: "$ink"}
+  - elementId: pl-icon
+    elementType: image
+    bounds: [76, 164, 64, 64]
+    src: assets/图标/icon-book.png
+    fit: {mode: fill}
+  - elementId: pl-title
+    elementType: text
+    bounds: [156, 168, 240, 32]
+    content: {fontSize: 19, color: "$ink", fontFamily: 精品点阵体, align: [left, middle], wrap: false, text: 魔法日记本}
+  - elementId: pl-tag
+    elementType: text
+    bounds: [156, 204, 240, 18]
+    content: {fontSize: 11, color: "$berry", fontFamily: MiSans, align: [left, middle], wrap: false, text: 汤姆·里德尔式日记}
+  - elementId: pl-list
+    elementType: text
+    bounds: [76, 248, 364, 96]
+    content:
+      style: "$body"
+      fontSize: 13
+      lineHeight: 2.0
+      align: [left, top]
+      text: |
+        <p><span style="color:$berry">▸</span> 写下的字，会慢慢消失</p>
+        <p><span style="color:$berry">▸</span> AI 以墨水浮现回应你</p>
+        <p><span style="color:$berry">▸</span> 情绪、复盘、悄悄话都有处安放</p>
+  - elementId: pl-bubble
+    elementType: image
+    bounds: [76, 386, 176, 70]
+    src: assets/贴纸与点缀/fx-dialog-bubble.png
+    fit: {mode: fill}
+  - elementId: pl-bubble-text
+    elementType: text
+    bounds: [90, 396, 150, 38]
+    content:
+      fontSize: 11
+      color: "$ink"
+      fontFamily: MiSans
+      lineHeight: 1.4
+      align: [center, middle]
+      text: 墨水慢慢浮现：「我在听。」
+  - elementId: pl-quill
+    elementType: image
+    bounds: [372, 392, 56, 56]
+    src: assets/图标/icon-quill.png
+    fit: {mode: fill}
+  # 右面板：自动化简历
+  - elementId: panel-r
+    elementType: shape
+    bounds: [492, 140, 420, 336]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 3, color: "$ink"}
+  - elementId: pr-icon
+    elementType: image
+    bounds: [520, 164, 64, 64]
+    src: assets/图标/icon-scroll.png
+    fit: {mode: fill}
+  - elementId: pr-title
+    elementType: text
+    bounds: [600, 168, 240, 32]
+    content: {fontSize: 19, color: "$ink", fontFamily: 精品点阵体, align: [left, middle], wrap: false, text: 自动化简历}
+  - elementId: pr-tag
+    elementType: text
+    bounds: [600, 204, 260, 18]
+    content: {fontSize: 11, color: "$berry", fontFamily: MiSans, align: [left, middle], wrap: false, text: 成长记录，一键变现}
+  - elementId: pr-list
+    elementType: text
+    bounds: [520, 248, 364, 96]
+    content:
+      style: "$body"
+      fontSize: 13
+      lineHeight: 2.0
+      align: [left, top]
+      text: |
+        <p><span style="color:$berry">▸</span> AI 整理你的成长记录与成就</p>
+        <p><span style="color:$berry">▸</span> 一键生成可用简历 / 作品集</p>
+        <p><span style="color:$berry">▸</span> 每一次升级，都有迹可循</p>
+  - elementId: pr-chest
+    elementType: image
+    bounds: [520, 390, 64, 64]
+    src: assets/角色与物件/obj-chest-open.png
+    fit: {mode: fill}
+  - elementId: pr-chest-label
+    elementType: text
+    bounds: [592, 406, 260, 22]
+    content:
+      fontSize: 11
+      color: "$wood"
+      fontFamily: MiSans
+      align: [left, middle]
+      wrap: false
+      text: 简历，是这一路冒险的战利品

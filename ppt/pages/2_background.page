@@ -1,0 +1,181 @@
+pageType: content
+background:
+  type: image
+  src: assets/背景/bg-parchment.png
+  fit: {mode: cover}
+notes: 时代背景：AI 时代青少年的三重困境——信息爆炸 / 目标模糊 / 学习没反馈
+elements:
+  - elementId: hdr-brand
+    elementType: text
+    bounds: [48, 22, 240, 16]
+    content:
+      style: "$pixelLabel"
+      align: [left, middle]
+      wrap: false
+      text: ZHIJIAN · LIFE RPG
+  - elementId: hdr-page
+    elementType: text
+    bounds: [792, 22, 120, 16]
+    content:
+      style: "$pixelLabel"
+      align: [right, middle]
+      wrap: false
+      text: 02 / 09
+  - elementId: title
+    elementType: text
+    bounds: [48, 50, 760, 42]
+    content:
+      style: "$pageTitle"
+      align: [left, middle]
+      wrap: false
+      text: AI 时代，少年的三重困境
+  - elementId: title-tick
+    elementType: shape
+    bounds: [50, 100, 72, 5]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+  # 分隔竖线
+  - elementId: sep-1
+    elementType: shape
+    bounds: [319, 168, 1, 268]
+    shapeName: rect
+    fill: {type: solid, color: "$stone"}
+  - elementId: sep-2
+    elementType: shape
+    bounds: [615, 168, 1, 268]
+    shapeName: rect
+    fill: {type: solid, color: "$stone"}
+  # 痛点 1 信息爆炸
+  - elementId: p1-icon
+    elementType: image
+    bounds: [152, 156, 64, 64]
+    src: assets/图标/icon-map.png
+    fit: {mode: fill}
+  - elementId: p1-num
+    elementType: text
+    bounds: [48, 232, 272, 26]
+    content:
+      fontFamily: Jersey15
+      fontSize: 20
+      color: "$gold"
+      letterSpacing: 4
+      align: [center, middle]
+      wrap: false
+      text: "01"
+  - elementId: p1-title
+    elementType: text
+    bounds: [48, 260, 272, 30]
+    content:
+      fontSize: 18
+      bold: true
+      color: "$ink"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: 信息爆炸
+  - elementId: p1-desc
+    elementType: text
+    bounds: [64, 298, 240, 120]
+    content:
+      fontSize: 12
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.8
+      align: [center, top]
+      text: |
+        资料与教程铺天盖地
+        不知道学什么、先学什么
+        收藏夹越堆越满，行动越来越少
+  # 痛点 2 目标模糊
+  - elementId: p2-icon
+    elementType: image
+    bounds: [448, 156, 64, 64]
+    src: assets/图标/icon-compass.png
+    fit: {mode: fill}
+  - elementId: p2-num
+    elementType: text
+    bounds: [344, 232, 272, 26]
+    content:
+      fontFamily: Jersey15
+      fontSize: 20
+      color: "$gold"
+      letterSpacing: 4
+      align: [center, middle]
+      wrap: false
+      text: "02"
+  - elementId: p2-title
+    elementType: text
+    bounds: [344, 260, 272, 30]
+    content:
+      fontSize: 18
+      bold: true
+      color: "$ink"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: 目标模糊
+  - elementId: p2-desc
+    elementType: text
+    bounds: [360, 298, 240, 120]
+    content:
+      fontSize: 12
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.8
+      align: [center, top]
+      text: |
+        「想变好」太抽象
+        缺少清晰可执行的目标
+        更缺少一步一步的路径
+  # 痛点 3 学习没反馈
+  - elementId: p3-icon
+    elementType: image
+    bounds: [744, 156, 64, 64]
+    src: assets/图标/icon-heart.png
+    fit: {mode: fill}
+  - elementId: p3-num
+    elementType: text
+    bounds: [640, 232, 272, 26]
+    content:
+      fontFamily: Jersey15
+      fontSize: 20
+      color: "$gold"
+      letterSpacing: 4
+      align: [center, middle]
+      wrap: false
+      text: "03"
+  - elementId: p3-title
+    elementType: text
+    bounds: [640, 260, 272, 30]
+    content:
+      fontSize: 18
+      bold: true
+      color: "$ink"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: 学习没反馈
+  - elementId: p3-desc
+    elementType: text
+    bounds: [656, 298, 240, 120]
+    content:
+      fontSize: 12
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.8
+      align: [center, top]
+      text: |
+        努力看不到进度条
+        没有即时反馈与奖励
+        热情耗尽，难以坚持
+  # 底部小结
+  - elementId: foot-note
+    elementType: text
+    bounds: [48, 462, 864, 30]
+    content:
+      fontSize: 15
+      color: "$berry"
+      fontFamily: 精品点阵体
+      align: [center, middle]
+      wrap: false
+      text: 不是不努力，是缺一套「看得见进度」的成长系统

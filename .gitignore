@@ -3,3 +3,4 @@ dist/
 app/.env
 .DS_Store
 *.local
+~$*

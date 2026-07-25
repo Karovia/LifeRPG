@@ -1,0 +1,124 @@
+pageType: cover
+background:
+  type: image
+  src: assets/背景/bg-town-day.png
+  fit: {mode: cover}
+notes: 封面：职见未来 · 人生RPG，主 slogan「把人生，变成一场 RPG」
+elements:
+  # 四角像素装饰
+  - elementId: corner-tl
+    elementType: image
+    bounds: [16, 16, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+  - elementId: corner-tr
+    elementType: image
+    bounds: [888, 16, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+    flip: [true, false]
+  - elementId: corner-bl
+    elementType: image
+    bounds: [16, 468, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+    flip: [false, true]
+  - elementId: corner-br
+    elementType: image
+    bounds: [888, 468, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+    flip: [true, true]
+  # 顶部定位语
+  - elementId: top-label
+    elementType: text
+    bounds: [280, 42, 400, 22]
+    content:
+      style: "$pixelLabel"
+      color: "$ink"
+      align: [center, middle]
+      wrap: false
+      text: AI 时代的青少年成长伙伴
+  # 标题底板（羊皮纸 + 双层像素描边）
+  - elementId: title-plate
+    elementType: shape
+    bounds: [220, 118, 520, 204]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 3, color: "$ink"}
+  - elementId: title-plate-inner
+    elementType: shape
+    bounds: [230, 128, 500, 184]
+    shapeName: rect
+    border: {style: solid, width: 1, color: "$wood"}
+  # 主标题
+  - elementId: main-title
+    elementType: text
+    bounds: [220, 140, 520, 100]
+    content:
+      style: "$bigTitle"
+      align: [center, middle]
+      wrap: false
+      shadow: {blur: 0, color: "$gold", offset: [4, 4]}
+      text: 职见未来
+  # 副标题
+  - elementId: sub-title
+    elementType: text
+    bounds: [220, 246, 520, 30]
+    content:
+      fontFamily: Jersey15
+      fontSize: 15
+      color: "$berry"
+      letterSpacing: 8
+      align: [center, middle]
+      wrap: false
+      text: — LIFE · RPG —
+  # 副标说明
+  - elementId: sub-desc
+    elementType: text
+    bounds: [220, 282, 520, 24]
+    content:
+      fontSize: 13
+      color: "$wood"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: 像素风人生 RPG · Web 应用
+  # 主角冒险者
+  - elementId: hero
+    elementType: image
+    bounds: [796, 330, 128, 128]
+    src: assets/角色与物件/char-hero.png
+    fit: {mode: fill}
+  # 闪光点缀
+  - elementId: sparkle-l
+    elementType: image
+    bounds: [160, 150, 44, 44]
+    src: assets/贴纸与点缀/fx-sparkle.png
+    fit: {mode: fill}
+  - elementId: sparkle-r
+    elementType: image
+    bounds: [756, 96, 36, 36]
+    src: assets/贴纸与点缀/fx-sparkle.png
+    fit: {mode: fill}
+  # 底部 slogan 木条
+  - elementId: slogan-bar
+    elementType: shape
+    bounds: [0, 486, 960, 54]
+    shapeName: rect
+    fill: {type: solid, color: "$night"}
+  - elementId: slogan-line
+    elementType: shape
+    bounds: [0, 486, 960, 4]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+  - elementId: slogan
+    elementType: text
+    bounds: [0, 490, 960, 46]
+    content:
+      fontSize: 22
+      color: "$cream"
+      fontFamily: 精品点阵体
+      align: [center, middle]
+      wrap: false
+      text: 把人生，变成一场 RPG

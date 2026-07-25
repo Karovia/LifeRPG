@@ -1,0 +1,50 @@
+version: v2
+title: 职见未来 · 人生RPG 产品展示
+size: [960, 540]
+theme:
+  colors:
+    paper: "#F2E8D5"
+    ink: "#4A3B2A"
+    wood: "#8B6B4A"
+    moss: "#7FA393"
+    berry: "#B5544A"
+    gold: "#D9A441"
+    stone: "#C9C2B4"
+    cream: "#FAF3E3"
+    night: "#2B2015"
+  textStyles:
+    bigTitle:
+      fontSize: 60
+      color: "$ink"
+      fontFamily: 精品点阵体
+    pageTitle:
+      fontSize: 28
+      color: "$ink"
+      fontFamily: 精品点阵体
+    body:
+      fontSize: 14
+      color: "$ink"
+      fontFamily: MiSans
+      lineHeight: 1.6
+    small:
+      fontSize: 11
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.5
+    pixelLabel:
+      fontSize: 10
+      color: "$wood"
+      fontFamily:
+        latin: Jersey15
+        ea: 精品点阵体
+      letterSpacing: 3
+pages:
+  - pages/1_cover.page
+  - pages/2_background.page
+  - pages/3_concept.page
+  - pages/4_overview.page
+  - pages/5_tree.page
+  - pages/6_diary_resume.page
+  - pages/7_town_home.page
+  - pages/8_art_tech.page
+  - pages/9_final.page

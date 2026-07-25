@@ -1,0 +1,99 @@
+pageType: final
+background:
+  type: image
+  src: assets/背景/bg-night.png
+  fit: {mode: cover}
+notes: 愿景封底：帮助青少年在 AI 时代更快学习、实现自我成长；把人生，变成一场 RPG
+elements:
+  - elementId: corner-tl
+    elementType: image
+    bounds: [16, 16, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+  - elementId: corner-tr
+    elementType: image
+    bounds: [888, 16, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+    flip: [true, false]
+  - elementId: corner-bl
+    elementType: image
+    bounds: [16, 468, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+    flip: [false, true]
+  - elementId: corner-br
+    elementType: image
+    bounds: [888, 468, 56, 56]
+    src: assets/边框与组件/corner-ornament.png
+    fit: {mode: fill}
+    flip: [true, true]
+  - elementId: top-label
+    elementType: text
+    bounds: [280, 60, 400, 22]
+    content:
+      style: "$pixelLabel"
+      color: "$cream"
+      align: [center, middle]
+      wrap: false
+      text: 职见未来 · 人生 RPG
+  - elementId: slogan
+    elementType: text
+    bounds: [0, 168, 960, 64]
+    content:
+      fontSize: 36
+      color: "$gold"
+      fontFamily: 精品点阵体
+      align: [center, middle]
+      wrap: false
+      text: 把人生，变成一场 RPG
+  - elementId: vision
+    elementType: text
+    bounds: [0, 248, 960, 30]
+    content:
+      fontSize: 15
+      color: "$cream"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: 帮助青少年在 AI 时代更快学习知识、实现自我成长
+  - elementId: press-start
+    elementType: text
+    bounds: [0, 316, 960, 26]
+    content:
+      fontFamily: Jersey15
+      fontSize: 14
+      color: "$gold"
+      letterSpacing: 6
+      align: [center, middle]
+      wrap: false
+      text: PRESS START
+  - elementId: hero-wave
+    elementType: image
+    bounds: [424, 372, 96, 96]
+    src: assets/角色与物件/char-hero-wave.png
+    fit: {mode: fill}
+  - elementId: cat
+    elementType: image
+    bounds: [536, 412, 52, 52]
+    src: assets/角色与物件/pet-cat.png
+    fit: {mode: fill}
+  - elementId: sparkle-l
+    elementType: image
+    bounds: [300, 150, 40, 40]
+    src: assets/贴纸与点缀/fx-sparkle.png
+    fit: {mode: fill}
+  - elementId: sparkle-r
+    elementType: image
+    bounds: [620, 140, 40, 40]
+    src: assets/贴纸与点缀/fx-sparkle.png
+    fit: {mode: fill}
+  - elementId: foot-label
+    elementType: text
+    bounds: [280, 496, 400, 18]
+    content:
+      style: "$pixelLabel"
+      color: "$stone"
+      align: [center, middle]
+      wrap: false
+      text: ZHIJIAN · LIFE RPG

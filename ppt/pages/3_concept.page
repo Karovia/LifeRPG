@@ -1,0 +1,160 @@
+pageType: content
+background:
+  type: image
+  src: assets/背景/bg-parchment.png
+  fit: {mode: cover}
+notes: 产品理念：游戏化成长 = 目标拆解 × RPG 即时反馈
+elements:
+  - elementId: hdr-brand
+    elementType: text
+    bounds: [48, 22, 240, 16]
+    content:
+      style: "$pixelLabel"
+      align: [left, middle]
+      wrap: false
+      text: ZHIJIAN · LIFE RPG
+  - elementId: hdr-page
+    elementType: text
+    bounds: [792, 22, 120, 16]
+    content:
+      style: "$pixelLabel"
+      align: [right, middle]
+      wrap: false
+      text: 03 / 09
+  - elementId: title
+    elementType: text
+    bounds: [48, 50, 760, 42]
+    content:
+      style: "$pageTitle"
+      align: [left, middle]
+      wrap: false
+      text: 产品理念 · 游戏化成长
+  - elementId: title-tick
+    elementType: shape
+    bounds: [50, 100, 72, 5]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+  # 公式：游戏化成长 = 目标拆解 × RPG 即时反馈
+  - elementId: f-plate-a
+    elementType: shape
+    bounds: [106, 185, 220, 70]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: f-text-a
+    elementType: text
+    bounds: [106, 185, 220, 70]
+    content:
+      fontSize: 22
+      color: "$ink"
+      fontFamily: 精品点阵体
+      align: [center, middle]
+      wrap: false
+      text: 游戏化成长
+  - elementId: f-eq
+    elementType: text
+    bounds: [326, 185, 44, 70]
+    content:
+      fontSize: 30
+      bold: true
+      color: "$berry"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: "="
+  - elementId: f-plate-b
+    elementType: shape
+    bounds: [370, 185, 220, 70]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: f-text-b
+    elementType: text
+    bounds: [370, 185, 220, 70]
+    content:
+      fontSize: 22
+      color: "$ink"
+      fontFamily: 精品点阵体
+      align: [center, middle]
+      wrap: false
+      text: 目标拆解
+  - elementId: f-mul
+    elementType: text
+    bounds: [590, 185, 44, 70]
+    content:
+      fontSize: 30
+      bold: true
+      color: "$gold"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: ×
+  - elementId: f-plate-c
+    elementType: shape
+    bounds: [634, 185, 220, 70]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: f-text-c
+    elementType: text
+    bounds: [634, 185, 220, 70]
+    content:
+      fontSize: 22
+      color: "$ink"
+      fontFamily: 精品点阵体
+      align: [center, middle]
+      wrap: false
+      text: RPG 即时反馈
+  # 蕾丝分隔
+  - elementId: divider
+    elementType: image
+    bounds: [352, 272, 256, 40]
+    src: assets/边框与组件/divider-lace.png
+    fit: {mode: fill}
+  # 一句话介绍
+  - elementId: intro
+    elementType: text
+    bounds: [130, 322, 700, 64]
+    content:
+      style: "$body"
+      fontSize: 15
+      align: [center, middle]
+      text: 职见未来把人生目标拆成一个个小任务，用游戏的方式陪你升级——帮助青少年在 AI 时代更快学习知识、实现自我成长。
+  # 导师 NPC + 气泡
+  - elementId: scholar
+    elementType: image
+    bounds: [168, 410, 88, 88]
+    src: assets/角色与物件/npc-scholar.png
+    fit: {mode: fill}
+  - elementId: bubble
+    elementType: image
+    bounds: [268, 408, 190, 80]
+    src: assets/贴纸与点缀/fx-dialog-bubble.png
+    fit: {mode: fill}
+  - elementId: bubble-text
+    elementType: text
+    bounds: [282, 424, 162, 24]
+    content:
+      fontSize: 12
+      color: "$ink"
+      fontFamily: MiSans
+      lineHeight: 1.5
+      align: [center, middle]
+      text: 出发吧，少年！
+  # 升级图标
+  - elementId: lvup-icon
+    elementType: image
+    bounds: [712, 414, 48, 48]
+    src: assets/图标/icon-levelup.png
+    fit: {mode: fill}
+  - elementId: lvup-label
+    elementType: text
+    bounds: [690, 466, 92, 18]
+    content:
+      fontFamily: Jersey15
+      fontSize: 11
+      color: "$gold"
+      letterSpacing: 3
+      align: [center, middle]
+      wrap: false
+      text: LEVEL UP

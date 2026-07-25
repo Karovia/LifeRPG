@@ -1,0 +1,251 @@
+pageType: content
+background:
+  type: image
+  src: assets/背景/bg-parchment.png
+  fit: {mode: cover}
+notes: 功能① AI 成就树：目标拆解为 20+ 小步任务节点，联网搜索真实参考，每步带 deadline 与验收标准
+elements:
+  - elementId: hdr-brand
+    elementType: text
+    bounds: [48, 22, 240, 16]
+    content:
+      style: "$pixelLabel"
+      align: [left, middle]
+      wrap: false
+      text: ZHIJIAN · LIFE RPG
+  - elementId: hdr-page
+    elementType: text
+    bounds: [792, 22, 120, 16]
+    content:
+      style: "$pixelLabel"
+      align: [right, middle]
+      wrap: false
+      text: 05 / 09
+  - elementId: title
+    elementType: text
+    bounds: [48, 50, 760, 42]
+    content:
+      style: "$pageTitle"
+      align: [left, middle]
+      wrap: false
+      text: 功能 ① · AI 成就树
+  - elementId: title-tick
+    elementType: shape
+    bounds: [50, 100, 72, 5]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+  # 左侧：图标 + 大数字 + 要点
+  - elementId: feat-icon
+    elementType: image
+    bounds: [48, 136, 56, 56]
+    src: assets/图标/icon-star.png
+    fit: {mode: fill}
+  - elementId: big-num
+    elementType: text
+    bounds: [48, 200, 130, 48]
+    content:
+      fontFamily: Jersey15
+      fontSize: 40
+      color: "$gold"
+      align: [left, middle]
+      wrap: false
+      text: 20+
+  - elementId: big-num-label
+    elementType: text
+    bounds: [152, 214, 180, 22]
+    content:
+      fontSize: 13
+      color: "$ink"
+      fontFamily: MiSans
+      align: [left, middle]
+      wrap: false
+      text: 个小步任务节点
+  - elementId: feat-list
+    elementType: text
+    bounds: [48, 268, 400, 124]
+    content:
+      style: "$body"
+      lineHeight: 2.0
+      align: [left, top]
+      text: |
+        <p><span style="color:$berry">▸</span> 输入人生目标：升学、技能、作品集……</p>
+        <p><span style="color:$berry">▸</span> AI 联网搜索真实参考，大模型拆解任务</p>
+        <p><span style="color:$berry">▸</span> 每步带 deadline 与验收标准</p>
+        <p><span style="color:$berry">▸</span> 像游戏任务一样，一步步点亮成就树</p>
+  # 右侧：节点树（形状绘制）
+  - elementId: tree-star
+    elementType: image
+    bounds: [548, 148, 32, 32]
+    src: assets/图标/icon-star.png
+    fit: {mode: fill}
+  - elementId: tree-root
+    elementType: shape
+    bounds: [586, 140, 200, 44]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: tree-root-text
+    elementType: text
+    bounds: [586, 140, 200, 44]
+    content: {fontSize: 15, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 人生目标}
+  # 连接线
+  - elementId: link-trunk
+    elementType: shape
+    bounds: [685, 184, 2, 31]
+    shapeName: rect
+    fill: {type: solid, color: "$wood"}
+  - elementId: link-bar
+    elementType: shape
+    bounds: [565, 215, 262, 2]
+    shapeName: rect
+    fill: {type: solid, color: "$wood"}
+  - elementId: link-v1
+    elementType: shape
+    bounds: [564, 215, 2, 35]
+    shapeName: rect
+    fill: {type: solid, color: "$wood"}
+  - elementId: link-v2
+    elementType: shape
+    bounds: [695, 215, 2, 35]
+    shapeName: rect
+    fill: {type: solid, color: "$wood"}
+  - elementId: link-v3
+    elementType: shape
+    bounds: [826, 215, 2, 35]
+    shapeName: rect
+    fill: {type: solid, color: "$wood"}
+  # 阶段节点
+  - elementId: stage-1
+    elementType: shape
+    bounds: [500, 250, 130, 34]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: stage-1-text
+    elementType: text
+    bounds: [500, 250, 130, 34]
+    content: {fontSize: 13, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 阶段一}
+  - elementId: stage-2
+    elementType: shape
+    bounds: [631, 250, 130, 34]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: stage-2-text
+    elementType: text
+    bounds: [631, 250, 130, 34]
+    content: {fontSize: 13, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 阶段二}
+  - elementId: stage-3
+    elementType: shape
+    bounds: [762, 250, 130, 34]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: stage-3-text
+    elementType: text
+    bounds: [762, 250, 130, 34]
+    content: {fontSize: 13, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 阶段三}
+  # 小步任务条（阶段一）
+  - elementId: t11
+    elementType: shape
+    bounds: [500, 302, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t11-text
+    elementType: text
+    bounds: [500, 302, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 联网搜索参考}
+  - elementId: t12
+    elementType: shape
+    bounds: [500, 338, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t12-text
+    elementType: text
+    bounds: [500, 338, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 拆解小步任务}
+  - elementId: t13
+    elementType: shape
+    bounds: [500, 374, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t13-text
+    elementType: text
+    bounds: [500, 374, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 设定验收标准}
+  # 小步任务条（阶段二）
+  - elementId: t21
+    elementType: shape
+    bounds: [631, 302, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t21-text
+    elementType: text
+    bounds: [631, 302, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 每日小步推进}
+  - elementId: t22
+    elementType: shape
+    bounds: [631, 338, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t22-text
+    elementType: text
+    bounds: [631, 338, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 打勾验收成果}
+  - elementId: t23
+    elementType: shape
+    bounds: [631, 374, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t23-text
+    elementType: text
+    bounds: [631, 374, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 解锁下一节点}
+  # 小步任务条（阶段三）
+  - elementId: t31
+    elementType: shape
+    bounds: [762, 302, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t31-text
+    elementType: text
+    bounds: [762, 302, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: Deadline 提醒}
+  - elementId: t32
+    elementType: shape
+    bounds: [762, 338, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t32-text
+    elementType: text
+    bounds: [762, 338, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 点亮成就之星}
+  - elementId: t33
+    elementType: shape
+    bounds: [762, 374, 130, 26]
+    shapeName: rect
+    fill: {type: solid, color: "$cream"}
+    border: {style: solid, width: 1, color: "$wood"}
+  - elementId: t33-text
+    elementType: text
+    bounds: [762, 374, 130, 26]
+    content: {fontSize: 10, color: "$wood", fontFamily: MiSans, align: [center, middle], wrap: false, text: 领取阶段奖励}
+  # 底部注释
+  - elementId: tree-note
+    elementType: text
+    bounds: [500, 424, 392, 24]
+    content:
+      fontSize: 11
+      color: "$wood"
+      fontFamily: MiSans
+      align: [center, middle]
+      wrap: false
+      text: 目标 → 阶段 → 小步任务，每完成一步，点亮一颗星

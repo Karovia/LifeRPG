@@ -1,0 +1,144 @@
+pageType: content
+background:
+  type: image
+  src: assets/背景/bg-town-dusk.png
+  fit: {mode: cover}
+notes: 功能③ 职见小镇 + 首页冒险面板：NPC 好感/委托/种田养猫；今日目标 + 撕日历 Deadline
+elements:
+  - elementId: hdr-brand
+    elementType: text
+    bounds: [48, 22, 240, 16]
+    content:
+      style: "$pixelLabel"
+      color: "$cream"
+      align: [left, middle]
+      wrap: false
+      text: ZHIJIAN · LIFE RPG
+  - elementId: hdr-page
+    elementType: text
+    bounds: [792, 22, 120, 16]
+    content:
+      style: "$pixelLabel"
+      color: "$cream"
+      align: [right, middle]
+      wrap: false
+      text: 07 / 09
+  - elementId: title
+    elementType: text
+    bounds: [48, 50, 800, 42]
+    content:
+      style: "$pageTitle"
+      color: "$cream"
+      align: [left, middle]
+      wrap: false
+      text: 功能 ③ · 职见小镇 × 冒险面板
+  - elementId: title-tick
+    elementType: shape
+    bounds: [50, 100, 72, 5]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+  # 左面板：职见小镇
+  - elementId: panel-l
+    elementType: shape
+    bounds: [48, 140, 420, 336]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 3, color: "$ink"}
+  - elementId: pl-icon
+    elementType: image
+    bounds: [76, 164, 64, 64]
+    src: assets/角色与物件/obj-house.png
+    fit: {mode: fill}
+  - elementId: pl-title
+    elementType: text
+    bounds: [156, 168, 240, 32]
+    content: {fontSize: 19, color: "$ink", fontFamily: 精品点阵体, align: [left, middle], wrap: false, text: 职见小镇}
+  - elementId: pl-tag
+    elementType: text
+    bounds: [156, 204, 260, 18]
+    content: {fontSize: 11, color: "$berry", fontFamily: MiSans, align: [left, middle], wrap: false, text: 俯视角像素小镇 · 养成基地}
+  - elementId: pl-list
+    elementType: text
+    bounds: [76, 248, 364, 96]
+    content:
+      style: "$body"
+      fontSize: 13
+      lineHeight: 2.0
+      align: [left, top]
+      text: |
+        <p><span style="color:$berry">▸</span> 和 AI 居民聊天，涨好感度</p>
+        <p><span style="color:$berry">▸</span> 接委托任务，赚取金币</p>
+        <p><span style="color:$berry">▸</span> 种田、养猫，经营你的小镇</p>
+  - elementId: pl-cat
+    elementType: image
+    bounds: [76, 394, 60, 60]
+    src: assets/角色与物件/pet-cat.png
+    fit: {mode: fill}
+  - elementId: pl-crops
+    elementType: image
+    bounds: [148, 394, 60, 60]
+    src: assets/角色与物件/obj-crops.png
+    fit: {mode: fill}
+  - elementId: pl-coin
+    elementType: image
+    bounds: [220, 398, 48, 48]
+    src: assets/图标/icon-coin.png
+    fit: {mode: fill}
+  - elementId: pl-deco-label
+    elementType: text
+    bounds: [284, 408, 160, 22]
+    content:
+      fontSize: 11
+      color: "$wood"
+      fontFamily: MiSans
+      align: [left, middle]
+      wrap: false
+      text: 小镇居民都在等你回家
+  # 右面板：首页冒险面板
+  - elementId: panel-r
+    elementType: shape
+    bounds: [492, 140, 420, 336]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 3, color: "$ink"}
+  - elementId: pr-icon
+    elementType: image
+    bounds: [520, 164, 64, 64]
+    src: assets/图标/icon-map.png
+    fit: {mode: fill}
+  - elementId: pr-title
+    elementType: text
+    bounds: [600, 168, 260, 32]
+    content: {fontSize: 19, color: "$ink", fontFamily: 精品点阵体, align: [left, middle], wrap: false, text: 首页冒险面板}
+  - elementId: pr-tag
+    elementType: text
+    bounds: [600, 204, 280, 18]
+    content: {fontSize: 11, color: "$berry", fontFamily: MiSans, align: [left, middle], wrap: false, text: 每天打开，都是新的一页}
+  - elementId: pr-list
+    elementType: text
+    bounds: [520, 248, 364, 96]
+    content:
+      style: "$body"
+      fontSize: 13
+      lineHeight: 2.0
+      align: [left, top]
+      text: |
+        <p><span style="color:$berry">▸</span> 今日目标，一目了然</p>
+        <p><span style="color:$berry">▸</span> 阶段 Deadline，撕日历式提醒</p>
+        <p><span style="color:$berry">▸</span> ToDo List + 等级经验条</p>
+  - elementId: pr-progress
+    elementType: image
+    bounds: [520, 402, 240, 48]
+    src: assets/边框与组件/progress-bar.png
+    fit: {mode: fill}
+  - elementId: pr-progress-label
+    elementType: text
+    bounds: [520, 452, 240, 16]
+    content:
+      fontFamily: Jersey15
+      fontSize: 10
+      color: "$wood"
+      letterSpacing: 2
+      align: [left, middle]
+      wrap: false
+      text: EXP · LV.03

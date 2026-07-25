@@ -1,0 +1,207 @@
+pageType: content
+background:
+  type: image
+  src: assets/背景/bg-sky-clouds.png
+  fit: {mode: cover}
+notes: 功能总览：5 大核心功能导览——成就树 / 魔法日记 / 职见小镇 / 冒险面板 / 自动简历
+elements:
+  - elementId: hdr-brand
+    elementType: text
+    bounds: [48, 22, 240, 16]
+    content:
+      style: "$pixelLabel"
+      align: [left, middle]
+      wrap: false
+      text: ZHIJIAN · LIFE RPG
+  - elementId: hdr-page
+    elementType: text
+    bounds: [792, 22, 120, 16]
+    content:
+      style: "$pixelLabel"
+      align: [right, middle]
+      wrap: false
+      text: 04 / 09
+  - elementId: title
+    elementType: text
+    bounds: [48, 50, 760, 42]
+    content:
+      style: "$pageTitle"
+      align: [left, middle]
+      wrap: false
+      text: 五大核心功能 · 冒险地图
+  - elementId: title-tick
+    elementType: shape
+    bounds: [50, 100, 72, 5]
+    shapeName: rect
+    fill: {type: solid, color: "$gold"}
+  # 卡片 1 成就树
+  - elementId: c1-bg
+    elementType: shape
+    bounds: [40, 172, 160, 264]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: c1-num
+    elementType: text
+    bounds: [40, 186, 160, 20]
+    content: {fontFamily: Jersey15, fontSize: 15, color: "$gold", letterSpacing: 4, align: [center, middle], wrap: false, text: "01"}
+  - elementId: c1-icon
+    elementType: image
+    bounds: [88, 218, 64, 64]
+    src: assets/图标/icon-star.png
+    fit: {mode: fill}
+  - elementId: c1-name
+    elementType: text
+    bounds: [46, 296, 148, 26]
+    content: {fontSize: 16, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 成就树}
+  - elementId: c1-desc
+    elementType: text
+    bounds: [50, 330, 140, 72]
+    content:
+      fontSize: 10
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.7
+      align: [center, top]
+      text: |
+        AI 联网拆解目标
+        20+ 小步任务节点
+  # 卡片 2 魔法日记
+  - elementId: c2-bg
+    elementType: shape
+    bounds: [220, 172, 160, 264]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: c2-num
+    elementType: text
+    bounds: [220, 186, 160, 20]
+    content: {fontFamily: Jersey15, fontSize: 15, color: "$gold", letterSpacing: 4, align: [center, middle], wrap: false, text: "02"}
+  - elementId: c2-icon
+    elementType: image
+    bounds: [268, 218, 64, 64]
+    src: assets/图标/icon-book.png
+    fit: {mode: fill}
+  - elementId: c2-name
+    elementType: text
+    bounds: [226, 296, 148, 26]
+    content: {fontSize: 16, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 魔法日记}
+  - elementId: c2-desc
+    elementType: text
+    bounds: [230, 330, 140, 72]
+    content:
+      fontSize: 10
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.7
+      align: [center, top]
+      text: |
+        写下的字会消失
+        AI 以墨水浮现回应
+  # 卡片 3 职见小镇
+  - elementId: c3-bg
+    elementType: shape
+    bounds: [400, 172, 160, 264]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: c3-num
+    elementType: text
+    bounds: [400, 186, 160, 20]
+    content: {fontFamily: Jersey15, fontSize: 15, color: "$gold", letterSpacing: 4, align: [center, middle], wrap: false, text: "03"}
+  - elementId: c3-icon
+    elementType: image
+    bounds: [448, 218, 64, 64]
+    src: assets/角色与物件/obj-house.png
+    fit: {mode: fill}
+  - elementId: c3-name
+    elementType: text
+    bounds: [406, 296, 148, 26]
+    content: {fontSize: 16, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 职见小镇}
+  - elementId: c3-desc
+    elementType: text
+    bounds: [410, 330, 140, 72]
+    content:
+      fontSize: 10
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.7
+      align: [center, top]
+      text: |
+        NPC 好感与委托
+        种田养猫赚金币
+  # 卡片 4 冒险面板
+  - elementId: c4-bg
+    elementType: shape
+    bounds: [580, 172, 160, 264]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: c4-num
+    elementType: text
+    bounds: [580, 186, 160, 20]
+    content: {fontFamily: Jersey15, fontSize: 15, color: "$gold", letterSpacing: 4, align: [center, middle], wrap: false, text: "04"}
+  - elementId: c4-icon
+    elementType: image
+    bounds: [628, 218, 64, 64]
+    src: assets/图标/icon-map.png
+    fit: {mode: fill}
+  - elementId: c4-name
+    elementType: text
+    bounds: [586, 296, 148, 26]
+    content: {fontSize: 16, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 冒险面板}
+  - elementId: c4-desc
+    elementType: text
+    bounds: [590, 330, 140, 72]
+    content:
+      fontSize: 10
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.7
+      align: [center, top]
+      text: |
+        今日目标一目了然
+        撕日历 Deadline
+  # 卡片 5 自动简历
+  - elementId: c5-bg
+    elementType: shape
+    bounds: [760, 172, 160, 264]
+    shapeName: rect
+    fill: {type: solid, color: "$paper"}
+    border: {style: solid, width: 2, color: "$ink"}
+  - elementId: c5-num
+    elementType: text
+    bounds: [760, 186, 160, 20]
+    content: {fontFamily: Jersey15, fontSize: 15, color: "$gold", letterSpacing: 4, align: [center, middle], wrap: false, text: "05"}
+  - elementId: c5-icon
+    elementType: image
+    bounds: [808, 218, 64, 64]
+    src: assets/图标/icon-scroll.png
+    fit: {mode: fill}
+  - elementId: c5-name
+    elementType: text
+    bounds: [766, 296, 148, 26]
+    content: {fontSize: 16, color: "$ink", fontFamily: 精品点阵体, align: [center, middle], wrap: false, text: 自动简历}
+  - elementId: c5-desc
+    elementType: text
+    bounds: [770, 330, 140, 72]
+    content:
+      fontSize: 10
+      color: "$wood"
+      fontFamily: MiSans
+      lineHeight: 1.7
+      align: [center, top]
+      text: |
+        AI 整理成长记录
+        一键生成简历
+  # 底部说明
+  - elementId: foot-note
+    elementType: text
+    bounds: [48, 464, 864, 26]
+    content:
+      fontSize: 14
+      color: "$ink"
+      fontFamily: 精品点阵体
+      align: [center, middle]
+      wrap: false
+      text: 一张地图，五种成长玩法
