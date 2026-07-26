@@ -71,3 +71,7 @@ LLM 调用统一走 OpenAI 兼容协议（`POST {baseURL}/chat/completions`，Be
 - 第五轮 10 张：无缝地面（grass / grass2 野花变体 / path / field，部分经 PIL 程序化无缝重建）、多格建筑精灵（buildings/house-red 128×128、house-wood 128×128、house-tall 128×192、well 64×64、tree-big 64×128）、钓鱼与作物素材（tiles/dock、ui/fish、crop/pumpkin-ripe、crop/wheat-ripe）
 
 动画渲染：前端以 `animFrames('<name>')` 拼 `/assets/anim/<name>/frame-0..3.png` 路径（与 manifest 条目一致），由小镇的 `FrameAnim` 组件循环播放。重新生成脚本：`app/scripts/generate-assets.mjs`。
+
+## 开源协议
+
+本项目基于 [MIT License](LICENSE) 开源。
